@@ -11,12 +11,22 @@
     #preview {
       display: flex;
       align-items: center;
-      justify-content: center;
+      /* "safe" : ne jamais clipper le debut du contenu quand il deborde */
+      justify-content: safe center;
       min-height: 110px;
       padding: 12px;
       font-size: 28px;
       overflow: auto;
       color: #111111;
+    }
+    /*
+     * Une formule plus large que le panneau est reduite pour rester
+     * entierement visible. Reduction vectorielle d'affichage uniquement :
+     * le SVG serialise pour l'insertion n'est pas touche.
+     */
+    #preview svg {
+      max-width: 100%;
+      height: auto;
     }
     #err {
       color: #b00020;
@@ -28,6 +38,18 @@
   <script>
     window.MathJax = {
       svg: { fontCache: "none" },
+      /*
+       * Pas de MathML assistif : sans la feuille de style globale de
+       * MathJax (jamais injectee avec typeset: false), il serait rendu
+       * nativement par Chromium et dupliquerait visuellement la formule.
+       * Le reglage du menu contextuel doit aussi etre coupe, sinon il
+       * reactive l'extension par dessus enableAssistiveMml.
+       */
+      options: {
+        enableAssistiveMml: false,
+        enableMenu: false,
+        menuOptions: { settings: { assistiveMml: false } }
+      },
       startup: { typeset: false }
     };
   </script>

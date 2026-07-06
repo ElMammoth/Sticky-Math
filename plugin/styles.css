@@ -67,3 +67,8 @@
   white-space: pre-wrap;
   opacity: 0.85;
 }
+
+.status.error {
+  color: #e34850;
+  opacity: 1;
+}

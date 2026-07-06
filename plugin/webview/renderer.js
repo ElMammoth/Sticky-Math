@@ -15,8 +15,34 @@ function send(obj) {
   window.uxpHost.postMessage(JSON.stringify(obj));
 }
 
-function render(tex, display) {
+/*
+ * tex2svg attend du TeX nu : les delimiteurs LaTeX englobants sont
+ * retires. \[ \] et $$ $$ forcent le mode display, \( \) et $ $ le mode
+ * inline. Sans delimiteurs, le mode demande par le panneau s'applique.
+ */
+function normalizeTex(raw, display) {
+  var tex = raw.trim();
+  var wrappers = [
+    { open: /^\\\[/, close: /\\\]$/, display: true },
+    { open: /^\$\$/, close: /\$\$$/, display: true },
+    { open: /^\\\(/, close: /\\\)$/, display: false },
+    { open: /^\$/, close: /\$$/, display: false },
+  ];
+  for (var i = 0; i < wrappers.length; i++) {
+    var w = wrappers[i];
+    if (w.open.test(tex) && w.close.test(tex.replace(w.open, ""))) {
+      tex = tex.replace(w.open, "").replace(w.close, "").trim();
+      return { tex: tex, display: w.display, stripped: true };
+    }
+  }
+  return { tex: tex, display: !!display, stripped: false };
+}
+
+function render(rawTex, displayRequested) {
   var seq = ++renderSeq;
+  var norm = normalizeTex(rawTex, displayRequested);
+  var tex = norm.tex;
+  var display = norm.display;
   MathJax.startup.promise
     .then(function () {
       MathJax.texReset();
@@ -54,7 +80,8 @@ function render(tex, display) {
       send({
         type: "rendered",
         tex: tex,
-        display: !!display,
+        display: display,
+        stripped: norm.stripped,
         svg: svg.outerHTML,
         widthEx: widthEx,
         heightEx: heightEx,
@@ -65,6 +92,8 @@ function render(tex, display) {
     .catch(function (e) {
       if (seq !== renderSeq) return;
       var message = e && e.message ? e.message : String(e);
+      /* pas d'apercu perime a cote d'un message d'erreur */
+      while (preview.firstChild) preview.removeChild(preview.firstChild);
       errBox.textContent = message;
       send({ type: "error", message: message });
     });

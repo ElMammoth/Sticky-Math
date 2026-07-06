@@ -59,13 +59,21 @@ document.addEventListener("DOMContentLoaded", () => {
     if (msg.type === "rendered") {
       lastRender = msg;
       insertBtn.disabled = false;
-      setStatus("");
+      /* la webview a pu forcer le mode via les delimiteurs saisis */
+      displayInput.checked = msg.display;
+      setStatus(
+        (msg.stripped
+          ? "Délimiteurs LaTeX retirés, mode " + (msg.display ? "display" : "inline") + " appliqué.\n"
+          : "") +
+        "Rendu prêt : " + msg.widthEx.toFixed(1) + " x " + msg.heightEx.toFixed(1) +
+        " ex, profondeur " + msg.depthEx.toFixed(2) + " ex."
+      );
       return;
     }
     if (msg.type === "error") {
       lastRender = null;
       insertBtn.disabled = true;
-      setStatus("Erreur LaTeX : " + msg.message);
+      setStatus("Erreur LaTeX : " + msg.message, true);
     }
   });
 
@@ -101,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   insertBtn.addEventListener("click", () => {
-    insertFormula().catch((e) => setStatus("Échec de l'insertion : " + (e && e.message ? e.message : e)));
+    insertFormula().catch((e) => setStatus("Échec de l'insertion : " + (e && e.message ? e.message : e), true));
   });
 });
 
@@ -113,8 +121,10 @@ function postToWebview(msg) {
   webview.postMessage(JSON.stringify(msg));
 }
 
-function setStatus(text) {
-  document.getElementById("status").textContent = text;
+function setStatus(text, isError) {
+  const status = document.getElementById("status");
+  status.textContent = text;
+  status.className = isError ? "status error" : "status";
 }
 
 /* Taille de police au point d'insertion courant, en pt, ou null. */
