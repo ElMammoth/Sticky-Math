@@ -1,0 +1,55 @@
+{
+  "id": "com.stickymath.plugin",
+  "name": "Sticky Math",
+  "version": "0.1.0",
+  "main": "index.html",
+  "manifestVersion": 5,
+  "host": [
+    {
+      "app": "ID",
+      "minVersion": "21.0"
+    }
+  ],
+  "entrypoints": [
+    {
+      "type": "panel",
+      "id": "stickyMathPanel",
+      "label": {
+        "default": "Sticky Math"
+      },
+      "minimumSize": { "width": 320, "height": 380 },
+      "maximumSize": { "width": 2048, "height": 2048 },
+      "preferredDockedSize": { "width": 380, "height": 540 },
+      "preferredFloatingSize": { "width": 380, "height": 540 },
+      "icons": [
+        {
+          "width": 23,
+          "height": 23,
+          "path": "icons/icon.png",
+          "scale": [1, 2],
+          "theme": ["darkest", "dark", "medium", "lightest", "light", "all"],
+          "species": ["generic"]
+        }
+      ]
+    }
+  ],
+  "requiredPermissions": {
+    "localFileSystem": "plugin",
+    "webview": {
+      "allow": "yes",
+      "allowLocalRendering": "yes",
+      "domains": [],
+      "enableMessageBridge": "localAndRemote"
+    }
+  },
+  "icons": [
+    {
+      "width": 24,
+      "height": 24,
+      "path": "icons/icon.png",
+      "scale": [1, 2],
+      "theme": ["darkest", "dark", "medium", "lightest", "light"],
+      "species": ["pluginList"]
+    }
+  ]
+}
