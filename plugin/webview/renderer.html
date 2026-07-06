@@ -8,6 +8,11 @@
       padding: 0;
       background: #ffffff;
     }
+    #boot {
+      font: 11px sans-serif;
+      color: #666666;
+      padding: 4px 12px 0;
+    }
     #preview {
       display: flex;
       align-items: center;
@@ -35,27 +40,11 @@
       white-space: pre-wrap;
     }
   </style>
-  <script>
-    window.MathJax = {
-      svg: { fontCache: "none" },
-      /*
-       * Pas de MathML assistif : sans la feuille de style globale de
-       * MathJax (jamais injectee avec typeset: false), il serait rendu
-       * nativement par Chromium et dupliquerait visuellement la formule.
-       * Le reglage du menu contextuel doit aussi etre coupe, sinon il
-       * reactive l'extension par dessus enableAssistiveMml.
-       */
-      options: {
-        enableAssistiveMml: false,
-        enableMenu: false,
-        menuOptions: { settings: { assistiveMml: false } }
-      },
-      startup: { typeset: false }
-    };
-  </script>
+  <script src="./config.js"></script>
   <script src="./vendor/tex-svg-full.js"></script>
 </head>
 <body>
+  <div id="boot">Chargement du moteur MathJax...</div>
   <div id="preview"></div>
   <div id="err"></div>
   <script src="./renderer.js"></script>

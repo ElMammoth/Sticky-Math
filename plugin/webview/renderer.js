@@ -10,9 +10,22 @@
 var preview = document.getElementById("preview");
 var errBox = document.getElementById("err");
 var renderSeq = 0;
+var engineReady = false;
+
+function boot(text, isError) {
+  stickyBoot(text, isError); // defini dans config.js
+}
 
 function send(obj) {
-  window.uxpHost.postMessage(JSON.stringify(obj));
+  if (!window.uxpHost || typeof window.uxpHost.postMessage !== "function") {
+    boot("Pont de messages indisponible (window.uxpHost absent). Vérifier enableMessageBridge dans le manifest et la version d'InDesign.", true);
+    return;
+  }
+  try {
+    window.uxpHost.postMessage(JSON.stringify(obj));
+  } catch (e) {
+    boot("Échec d'envoi vers le panneau : " + (e && e.message ? e.message : e), true);
+  }
 }
 
 /*
@@ -115,12 +128,35 @@ window.addEventListener("message", function (event) {
     }
   }
   if (!msg || !msg.type) return;
-  if (msg.type === "render") render(msg.tex, msg.display);
+  /* le ping du panneau prouve que le sens panneau vers webview marche */
+  if (msg.type === "ping") {
+    if (engineReady) {
+      send({ type: "ready" });
+    } else {
+      boot("Ping du panneau reçu, moteur MathJax pas encore prêt...");
+    }
+    return;
+  }
+  if (msg.type === "render") {
+    boot("");
+    render(msg.tex, msg.display);
+  }
   if (msg.type === "clear") clearPreview();
 });
 
 window.addEventListener("load", function () {
+  /*
+   * Attention : window.MathJax existe toujours (objet de config pose par
+   * config.js). Seul startup.promise prouve que le vrai MathJax a charge
+   * et remplace la config.
+   */
+  if (typeof MathJax === "undefined" || !MathJax.startup || !MathJax.startup.promise) {
+    boot("MathJax n'est pas chargé (vendor/tex-svg-full.js manquant ou bloqué).", true);
+    return;
+  }
   MathJax.startup.promise.then(function () {
+    engineReady = true;
+    boot("Moteur prêt, en attente de saisie.");
     send({ type: "ready" });
   });
 });

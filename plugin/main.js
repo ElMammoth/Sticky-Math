@@ -49,10 +49,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!msg || !msg.type) return;
 
     if (msg.type === "ready") {
+      const firstReady = !webviewReady;
       webviewReady = true;
       if (pendingRender) {
         postToWebview(pendingRender);
         pendingRender = null;
+      } else if (firstReady) {
+        setStatus("Moteur de rendu prêt.");
+        /* du LaTeX deja saisi pendant le demarrage : rendre maintenant */
+        if (texInput.value.trim()) requestRender();
       }
       return;
     }
@@ -76,6 +81,38 @@ document.addEventListener("DOMContentLoaded", () => {
       setStatus("Erreur LaTeX : " + msg.message, true);
     }
   });
+
+  /*
+   * Surveillance du demarrage de la webview. Le ping prouve le sens
+   * panneau vers webview (la page affiche sa reception) ; le ready en
+   * retour prouve le sens inverse. Sans ready au bout de 8 s, on
+   * affiche un diagnostic plutot qu'un panneau silencieux.
+   */
+  const pingTimer = setInterval(() => {
+    if (webviewReady) {
+      clearInterval(pingTimer);
+      return;
+    }
+    try {
+      webview.postMessage(JSON.stringify({ type: "ping" }));
+    } catch (e) {
+      /* webview pas encore initialisee */
+    }
+  }, 1500);
+  setTimeout(() => {
+    if (!webviewReady) {
+      setStatus(
+        "La page de rendu ne répond pas (aucun message ready).\n" +
+        "Lisez le texte affiché dans la zone d'aperçu :\n" +
+        "- zone totalement vide : la webview n'a pas chargé renderer.html (manifest webview, InDesign 21.0.0.192 minimum) ;\n" +
+        "- « Chargement du moteur... » : MathJax ne finit pas de charger ;\n" +
+        "- « Ping du panneau reçu... » : seul le sens webview vers panneau est cassé ;\n" +
+        "- « Pont de messages indisponible » : enableMessageBridge inactif.\n" +
+        "Après toute modification du manifest, décharger puis recharger le plugin dans l'UDT.",
+        true
+      );
+    }
+  }, 8000);
 
   const requestRender = () => {
     const tex = texInput.value.trim();

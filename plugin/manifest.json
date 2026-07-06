@@ -38,7 +38,7 @@
     "webview": {
       "allow": "yes",
       "allowLocalRendering": "yes",
-      "domains": [],
+      "domains": "all",
       "enableMessageBridge": "localAndRemote"
     }
   },
