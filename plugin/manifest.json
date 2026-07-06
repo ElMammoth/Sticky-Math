@@ -4,12 +4,10 @@
   "version": "0.1.0",
   "main": "index.html",
   "manifestVersion": 5,
-  "host": [
-    {
-      "app": "ID",
-      "minVersion": "21.0"
-    }
-  ],
+  "host": {
+    "app": "ID",
+    "minVersion": "21.0.0"
+  },
   "entrypoints": [
     {
       "type": "panel",

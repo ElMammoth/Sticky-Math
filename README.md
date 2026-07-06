@@ -17,6 +17,27 @@ Contrainte fondatrice : WYSIWYG strict. Le SVG affiché dans l'aperçu est exact
 4. Dans la ligne du plugin : Load. Le panneau « Sticky Math » apparaît dans InDesign.
 5. Pour itérer : Actions > Reload après chaque modification des fichiers.
 
+## Installation permanente (.ccx)
+
+Pour installer le plugin sans passer par l'UDT :
+
+1. Dans l'UDT : Package, ce qui produit un fichier `.ccx` (un zip du dossier `plugin/`).
+2. Double-cliquer sur le `.ccx` : Creative Cloud Desktop l'installe après un avertissement (plugin hors marketplace). Le plugin survit alors aux redémarrages d'InDesign.
+
+Si Creative Cloud affiche « Compatible app required » :
+
+- Vérifier que le manifest respecte strictement le schéma v5 : `host` doit être un OBJET (`{ "app": "ID", "minVersion": "21.0.0" }`, pas un tableau) et `minVersion` au format `x.y.z`. L'UDT charge un manifest laxiste, mais l'installateur Creative Cloud fait une correspondance stricte. Repackager après toute correction.
+- Mettre à jour Creative Cloud Desktop (la prise en charge des plugins UXP InDesign est récente).
+- Cause connue (forum Adobe) : décalage de langue entre Creative Cloud et l'application ; aligner la langue d'installation par défaut de Creative Cloud sur celle d'InDesign.
+- Plan B avec messages d'erreur réels, l'installateur en ligne de commande UPIA :
+
+```
+"/Library/Application Support/Adobe/Adobe Desktop Common/RemoteComponents/UPI/UnifiedPluginInstallerAgent/UnifiedPluginInstallerAgent.app/Contents/MacOS/UnifiedPluginInstallerAgent" --list all
+"/Library/Application Support/Adobe/Adobe Desktop Common/RemoteComponents/UPI/UnifiedPluginInstallerAgent/UnifiedPluginInstallerAgent.app/Contents/MacOS/UnifiedPluginInstallerAgent" --install "chemin/vers/Sticky Math_0.1.0.ccx"
+```
+
+`--list all` montre les applications que l'installateur connaît (InDesign doit y figurer) et `--install` affiche la raison exacte d'un refus. Ne pas copier les fichiers à la main dans les dossiers UXP : l'installation doit passer par Creative Cloud ou UPIA pour mettre à jour leur base de données.
+
 ## Utilisation
 
 1. Ouvrir un document, placer le curseur texte à l'endroit voulu.
