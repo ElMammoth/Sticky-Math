@@ -118,23 +118,33 @@ function clearPreview() {
   while (preview.firstChild) preview.removeChild(preview.firstChild);
 }
 
-window.addEventListener("message", function (event) {
-  var msg = event.data;
-  if (typeof msg === "string") {
-    try {
-      msg = JSON.parse(msg);
-    } catch (e) {
-      return;
-    }
-  }
+/*
+ * Les messages du panneau arrivent par postMessage et, en secours, par
+ * le fragment d'URL (hashchange). Les deux canaux peuvent livrer le
+ * meme message : deduplication par numero de sequence.
+ */
+var seenSeqs = [];
+var pingCount = 0;
+
+function alreadySeen(seq) {
+  if (seq === undefined || seq === null) return false;
+  if (seenSeqs.indexOf(seq) !== -1) return true;
+  seenSeqs.push(seq);
+  if (seenSeqs.length > 50) seenSeqs.shift();
+  return false;
+}
+
+function handleMessage(msg, via) {
   if (!msg || !msg.type) return;
+  if (alreadySeen(msg.seq)) return;
   /* le ping du panneau prouve que le sens panneau vers webview marche */
   if (msg.type === "ping") {
-    if (engineReady) {
-      send({ type: "ready" });
-    } else {
-      boot("Ping du panneau reçu, moteur MathJax pas encore prêt...");
-    }
+    pingCount++;
+    boot(
+      (engineReady ? "Moteur prêt. " : "Moteur en chargement. ") +
+      "Ping n°" + pingCount + " reçu via " + via + "."
+    );
+    if (engineReady) send({ type: "ready" });
     return;
   }
   if (msg.type === "render") {
@@ -142,7 +152,35 @@ window.addEventListener("message", function (event) {
     render(msg.tex, msg.display);
   }
   if (msg.type === "clear") clearPreview();
+}
+
+function parseAndHandle(str, via) {
+  var msg = str;
+  if (typeof msg === "string") {
+    try {
+      msg = JSON.parse(msg);
+    } catch (e) {
+      return;
+    }
+  }
+  handleMessage(msg, via);
+}
+
+window.addEventListener("message", function (event) {
+  parseAndHandle(event.data, "postMessage");
 });
+
+function readHashMessage() {
+  var h = window.location.hash;
+  if (h && h.indexOf("#m=") === 0) {
+    try {
+      parseAndHandle(decodeURIComponent(h.slice(3)), "hash");
+    } catch (e) {
+      /* fragment illisible : ignore */
+    }
+  }
+}
+window.addEventListener("hashchange", readHashMessage);
 
 window.addEventListener("load", function () {
   /*
@@ -158,5 +196,7 @@ window.addEventListener("load", function () {
     engineReady = true;
     boot("Moteur prêt, en attente de saisie.");
     send({ type: "ready" });
+    /* message deja transmis par le hash pendant le chargement */
+    readHashMessage();
   });
 });

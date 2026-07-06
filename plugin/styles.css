@@ -61,6 +61,17 @@
   font-weight: bold;
 }
 
+.bridge {
+  font-size: 10px;
+  opacity: 0.6;
+  white-space: pre-wrap;
+}
+
+.bridge.error {
+  color: #e34850;
+  opacity: 1;
+}
+
 .status {
   min-height: 28px;
   font-size: 11px;

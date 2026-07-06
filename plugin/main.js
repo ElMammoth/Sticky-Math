@@ -13,12 +13,23 @@ const uxpStorage = require("uxp").storage.localFileSystem;
 const { app, AnchorPosition, FitOptions, MeasurementUnits } = require("indesign");
 
 const LABEL_KEY = "sticky-math";
+const WEBVIEW_SRC = "plugin:/webview/renderer.html";
 
 let webview = null;
 let webviewReady = false;
 let pendingRender = null;
 let lastRender = null; // { tex, display, svg, widthEx, heightEx, depthEx, exEm }
 let debounceTimer = null;
+let msgSeq = 0;
+let pingsSent = 0;
+/*
+ * Canal de secours : certains builds d'InDesign perdent les postMessage
+ * du panneau vers la webview (bug connu de la 20.4, corrige en
+ * 21.0.0.192). Quand les pings restent sans reponse, les messages
+ * passent aussi par le fragment d'URL de la webview, que la page
+ * ecoute via hashchange. Le sens webview vers panneau reste uxpHost.
+ */
+let hashFallback = false;
 
 entrypoints.setup({
   panels: {
@@ -37,7 +48,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const insertBtn = document.getElementById("insert");
   const fromCursorBtn = document.getElementById("fromCursor");
 
-  webview.addEventListener("message", (event) => {
+  const onWebviewMessage = (event) => {
     let msg = event.data;
     if (typeof msg === "string") {
       try {
@@ -55,9 +66,11 @@ document.addEventListener("DOMContentLoaded", () => {
         postToWebview(pendingRender);
         pendingRender = null;
       } else if (firstReady) {
-        setStatus("Moteur de rendu prêt.");
         /* du LaTeX deja saisi pendant le demarrage : rendre maintenant */
         if (texInput.value.trim()) requestRender();
+      }
+      if (firstReady) {
+        setBridge("Liaison webview : OK" + (hashFallback ? " (canal de secours actif : postMessage panneau vers webview muet)" : "") + ".");
       }
       return;
     }
@@ -80,7 +93,10 @@ document.addEventListener("DOMContentLoaded", () => {
       insertBtn.disabled = true;
       setStatus("Erreur LaTeX : " + msg.message, true);
     }
-  });
+  };
+  /* selon les hotes UXP, l'evenement message arrive sur l'element ou sur window */
+  webview.addEventListener("message", onWebviewMessage);
+  window.addEventListener("message", onWebviewMessage);
 
   /*
    * Surveillance du demarrage de la webview. Le ping prouve le sens
@@ -93,22 +109,23 @@ document.addEventListener("DOMContentLoaded", () => {
       clearInterval(pingTimer);
       return;
     }
-    try {
-      webview.postMessage(JSON.stringify({ type: "ping" }));
-    } catch (e) {
-      /* webview pas encore initialisee */
+    pingsSent++;
+    if (pingsSent === 4 && !hashFallback) {
+      hashFallback = true;
+      setBridge("Liaison webview : postMessage sans réponse, bascule sur le canal de secours (hash)...");
     }
+    sendToWebview({ type: "ping" });
   }, 1500);
   setTimeout(() => {
     if (!webviewReady) {
-      setStatus(
-        "La page de rendu ne répond pas (aucun message ready).\n" +
+      setBridge(
+        "Liaison webview : AUCUNE réponse, même par le canal de secours.\n" +
         "Lisez le texte affiché dans la zone d'aperçu :\n" +
-        "- zone totalement vide : la webview n'a pas chargé renderer.html (manifest webview, InDesign 21.0.0.192 minimum) ;\n" +
+        "- zone totalement vide : la webview n'a pas chargé renderer.html ;\n" +
         "- « Chargement du moteur... » : MathJax ne finit pas de charger ;\n" +
-        "- « Ping du panneau reçu... » : seul le sens webview vers panneau est cassé ;\n" +
-        "- « Pont de messages indisponible » : enableMessageBridge inactif.\n" +
-        "Après toute modification du manifest, décharger puis recharger le plugin dans l'UDT.",
+        "- « Moteur prêt... ping n°N reçu » : les messages du panneau arrivent, mais les réponses de la webview se perdent (sens webview vers panneau cassé) ;\n" +
+        "- « Moteur prêt, en attente de saisie » sans mention de ping : rien n'atteint la webview.\n" +
+        "Relevez aussi la version exacte d'InDesign (À propos, minimum 21.0.0.192).",
         true
       );
     }
@@ -150,18 +167,46 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+/*
+ * Envoi brut vers la webview par les deux canaux. Le numero de sequence
+ * permet a la page de dedupliquer quand postMessage ET le hash arrivent.
+ */
+function sendToWebview(msg) {
+  msg.seq = ++msgSeq;
+  const str = JSON.stringify(msg);
+  try {
+    webview.postMessage(str);
+  } catch (e) {
+    /* webview pas encore initialisee */
+  }
+  if (hashFallback) {
+    try {
+      webview.src = WEBVIEW_SRC + "#m=" + encodeURIComponent(str);
+    } catch (e) {
+      /* setter src indisponible : postMessage reste seul */
+    }
+  }
+}
+
 function postToWebview(msg) {
   if (!webviewReady) {
     if (msg.type === "render") pendingRender = msg;
     return;
   }
-  webview.postMessage(JSON.stringify(msg));
+  sendToWebview(msg);
 }
 
 function setStatus(text, isError) {
   const status = document.getElementById("status");
   status.textContent = text;
   status.className = isError ? "status error" : "status";
+}
+
+/* Etat de la liaison panneau/webview, affiche en permanence. */
+function setBridge(text, isError) {
+  const bridge = document.getElementById("bridge");
+  bridge.textContent = text;
+  bridge.className = isError ? "bridge error" : "bridge";
 }
 
 /* Taille de police au point d'insertion courant, en pt, ou null. */
