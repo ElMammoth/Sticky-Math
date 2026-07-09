@@ -19,7 +19,10 @@
 - [ ] Macros LaTeX utilisateur (préambule configurable passé à MathJax) et bibliothèque de formules récentes.
 - [x] Destination des SVG choisie par l'utilisateur, persistante entre sessions, fichiers conservés jusqu'à suppression manuelle (le nettoyage automatique n'est plus souhaité).
 - [ ] Option future : intégrer le SVG en données du document (embed du lien InDesign) pour les fichiers restés en dossier temporaire.
-- [ ] Groupement d'annulation : envelopper l'insertion dans un seul pas d'undo (app.doScript avec UndoModes.ENTIRE_SCRIPT en UXPScript).
+- [x] Groupement d'annulation : insertion enveloppée dans app.doScript UndoModes.ENTIRE_SCRIPT (repli en exécution directe si indisponible).
+- [x] Tableaux : détection de cellule en excès après insertion, activation d'autoGrow sur la rangée dans la même transaction, avertissement si l'excès persiste.
+- [x] Fiabilité de la liaison webview : machine d'état avec ping permanent, reconnexion automatique, re-rendu à la reconnexion, recréation de la webview en dernier recours.
+- [ ] Vérifier en réel les scénarios de reconnexion (masquer/réafficher le panneau, changer d'espace de travail, laisser InDesign en veille longue) : la ligne « Liaison webview » doit revenir à OK seule.
 - [ ] Mode display vs inline : traitement typographique distinct (formule display en paragraphe dédié, centrage, espacement).
 - [ ] Packaging .ccx et icônes définitives.
 

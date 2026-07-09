@@ -147,14 +147,16 @@ function alreadySeen(seq) {
 function handleMessage(msg, via) {
   if (!msg || !msg.type) return;
   if (alreadySeen(msg.seq)) return;
-  /* le ping du panneau prouve que le sens panneau vers webview marche */
+  /* le ping du panneau prouve que le sens panneau vers webview marche ;
+     la reponse indique le canal d'arrivee pour que le panneau sache si
+     postMessage fonctionne (et coupe le canal de secours le cas echeant) */
   if (msg.type === "ping") {
     pingCount++;
     boot(
       (engineReady ? "Moteur prêt. " : "Moteur en chargement. ") +
       "Ping n°" + pingCount + " reçu via " + via + "."
     );
-    if (engineReady) send({ type: "ready" });
+    if (engineReady) send({ type: "ready", via: via });
     return;
   }
   if (msg.type === "render") {
@@ -205,8 +207,13 @@ window.addEventListener("load", function () {
   MathJax.startup.promise.then(function () {
     engineReady = true;
     boot("Moteur prêt, en attente de saisie.");
-    send({ type: "ready" });
+    send({ type: "ready", via: "load" });
     /* message deja transmis par le hash pendant le chargement */
     readHashMessage();
   });
+});
+
+/* apres un masquage ou une suspension, re-signaler la presence au panneau */
+document.addEventListener("visibilitychange", function () {
+  if (!document.hidden && engineReady) send({ type: "ready", via: "load" });
 });

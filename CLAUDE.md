@@ -23,19 +23,23 @@ Flux : saisie LaTeX dans le panneau, postMessage vers la webview, rendu MathJax 
 
 Destination des SVG : dossier temporaire du plugin par défaut, ou dossier choisi par l'utilisateur (`localFileSystem: "request"`, sélecteur `getFolder`). L'accès au dossier choisi est conservé entre les sessions par jeton persistant UXP (`createPersistentToken` / `getEntryForPersistentToken`) stocké en localStorage avec le chemin d'affichage. Le dossier est relu à chaque insertion (changement de destination a effet immédiat) et les fichiers n'y sont jamais supprimés par le plugin.
 
-Placement InDesign (`plugin/main.js`) :
+Placement InDesign (`plugin/lib/indesign.js`) :
 
-- `insertionPoint.rectangles.add()` crée le rectangle ancré inline ;
-- `rect.place(cheminSvg)` puis `fit(FRAME_TO_CONTENT)` ;
+- règle de fiabilité absolue : aucune référence DOM InDesign ne traverse un `await` (référence invalidée = crash natif possible) ; le point d'insertion est résolu au moment de l'appel, après l'écriture du fichier, et toute la séquence est synchrone ;
+- la séquence tourne dans `app.doScript(..., UndoModes.ENTIRE_SCRIPT)` : une transaction, un seul pas d'annulation (repli en exécution directe si doScript refuse une fonction) ;
+- `insertionPoint.rectangles.add()` crée le rectangle ancré inline, puis `rect.place(cheminSvg)` et `fit(FRAME_TO_CONTENT)` ;
 - baseline : `anchoredObjectSettings.anchorYoffset = -depthPt` où depthPt vient du `vertical-align` MathJax (profondeur sous la baseline) ; signe à confirmer visuellement au premier essai dans InDesign ;
+- tableaux : une cellule en excès masque tout son contenu (cause des formules « disparues ») ; si l'insertion a lieu dans une cellule qui déborde et que la rangée ne grandit pas, `row.autoGrow` est activé dans la même transaction et annoncé dans le statut ; si l'excès persiste, avertissement ;
 - unités forcées en points via `app.scriptPreferences.measurementUnit` (restaurées en finally) ;
 - label : `rect.label` = JSON `{ app: "sticky-math", v, tex, display, corps, scalePct, depthEx, exEm, mtextFont }` et `rect.insertLabel("sticky-math:tex", tex)`.
+
+Liaison panneau/webview (`plugin/lib/webview-link.js`) : machine d'état avec surveillance permanente, jamais « acquise ». Ping continu (1.5 s en établissement, 10 s en régime établi), liaison déclarée perdue après 2 pings muets puis rétablie automatiquement, re-rendu du contenu courant à chaque (re)connexion. Escalade en cas de silence : canal de secours par fragment d'URL (builds dont postMessage panneau vers webview est muet), coupé dès qu'un ping répond par postMessage, puis recréation de l'élément webview en dernier recours. La webview répond aux pings en indiquant le canal d'arrivée et se re-signale à la reprise de visibilité.
 
 Conversion d'unités : le SVG MathJax est dimensionné en ex. Le rapport ex/em est MESURÉ par la webview (`MathJax.getMetricsFor`, environ 0.459, pas 0.5). taille en pt = valeurEx * exEm * corps * (échelle / 100).
 
 ## Structure du dépôt
 
-- `plugin/` : le plugin UXP chargeable tel quel dans l'UXP Developer Tool (manifest v5).
+- `plugin/` : le plugin UXP chargeable tel quel dans l'UXP Developer Tool (manifest v5). `main.js` ne fait que le câblage de l'interface ; la logique vit dans `plugin/lib/` (webview-link.js : liaison surveillée ; indesign.js : DOM InDesign, tout synchrone ; prefs.js : préférences persistantes et écriture des SVG).
 - `plugin/webview/vendor/tex-svg-full.js` : MathJax 3 vendorisé (composant complet tex-svg), fonctionnement hors ligne. Ne pas remplacer par un chargement CDN.
 - `docs/adr/` : décisions d'architecture, une par fichier, numérotées.
 - `docs/rapport-environnement.md` : versions cibles, API MathML native, vérifications à faire sur le poste.
