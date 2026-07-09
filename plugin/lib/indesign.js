@@ -42,7 +42,10 @@ function textContext() {
     if (!item || !item.constructor || item.constructor.name !== "InsertionPoint") return null;
 
     const ctx = { ip: item, pointSize: null, fontFamily: null };
-    if (typeof item.pointSize === "number") ctx.pointSize = item.pointSize;
+    /* pointSize peut revenir NaN ou sous forme de chaine selon le
+       contexte : ne garder qu'un nombre fini et positif */
+    const ps = parseFloat(item.pointSize);
+    if (isFinite(ps) && ps > 0) ctx.pointSize = ps;
     const font = item.appliedFont;
     /* selon le contexte, Font object ou chaine "Famille\tStyle" */
     if (typeof font === "string") ctx.fontFamily = font.split("\t")[0];

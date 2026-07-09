@@ -28,7 +28,6 @@ let debounceTimer = null;
 document.addEventListener("DOMContentLoaded", () => {
   ui = {
     tex: document.getElementById("tex"),
-    display: document.getElementById("display"),
     fontSize: document.getElementById("fontSize"),
     scale: document.getElementById("scale"),
     mtextFont: document.getElementById("mtextFont"),
@@ -57,8 +56,6 @@ document.addEventListener("DOMContentLoaded", () => {
   link.start();
 
   ui.tex.addEventListener("input", () => scheduleRender(250));
-  ui.display.addEventListener("change", requestRender);
-  /* sp-slider affiche sa propre valeur, pas de libelle a synchroniser */
   ui.mtextFont.addEventListener("input", () => {
     prefs.setMtextFont(ui.mtextFont.value.trim());
     scheduleRender(400);
@@ -67,8 +64,10 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("fromCursor").addEventListener("click", () => {
     const ctx = indesign.textContext();
     if (ctx && ctx.pointSize) {
-      ui.fontSize.value = ctx.pointSize;
-      setStatus("Corps repris du curseur : " + ctx.pointSize + " pt");
+      /* toujours une chaine numerique propre : sp-textfield affiche
+         "nan" si on lui pousse autre chose */
+      ui.fontSize.value = String(Math.round(ctx.pointSize * 100) / 100);
+      setStatus("");
     } else {
       setStatus("Placez le curseur texte dans un bloc pour lire sa taille.");
     }
@@ -79,7 +78,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (ctx && ctx.fontFamily) {
       ui.mtextFont.value = ctx.fontFamily;
       prefs.setMtextFont(ctx.fontFamily);
-      setStatus("Police du texte reprise du curseur : " + ctx.fontFamily);
+      setStatus("");
       requestRender();
     } else {
       setStatus("Placez le curseur texte dans un bloc pour lire sa police.");
@@ -94,17 +93,14 @@ document.addEventListener("DOMContentLoaded", () => {
     prefs
       .chooseDestFolder()
       .then((path) => {
-        if (path) {
-          updateDestLabel();
-          setStatus("Destination des SVG : " + path);
-        }
+        if (path) updateDestLabel();
       })
       .catch((e) => setStatus("Choix du dossier impossible : " + errText(e), true));
   });
   document.getElementById("resetDest").addEventListener("click", () => {
     prefs.resetDestFolder();
     updateDestLabel();
-    setStatus("Destination : dossier temporaire du plugin.");
+    setStatus("");
   });
 
   prefs.restoreDestFolder().then((res) => {
@@ -130,19 +126,18 @@ function replaceWebview() {
   return fresh;
 }
 
+/* La ligne d'etat de liaison n'apparait qu'en cas de probleme :
+   en fonctionnement normal, le panneau reste muet. */
 function onLinkState(state, detail) {
-  if (state === "ready") {
-    setBridge(detail === "hash" ? "Liaison webview : OK (canal de secours, postMessage muet)." : "Liaison webview : OK.");
+  if (state === "ready" || detail === "etablissement") {
+    setBridge("");
     return;
   }
-  if (detail === "etablissement") setBridge("Liaison webview : établissement...");
-  if (detail === "perdue") setBridge("Liaison webview : perdue, reconnexion en cours...", true);
-  if (detail === "escalade-hash") setBridge("Liaison webview : postMessage sans réponse, canal de secours actif...", true);
+  if (detail === "perdue") setBridge("Aperçu déconnecté, reconnexion en cours...", true);
+  if (detail === "escalade-hash") setBridge("Aperçu : canal de secours actif.", true);
   if (detail === "webview-recreee") {
     setBridge(
-      "Liaison webview : toujours muette, webview recréée.\n" +
-      "Si le blocage persiste, lisez le texte affiché dans la zone d'aperçu " +
-      "(état du moteur, pings reçus) et relevez la version d'InDesign (minimum 21.0.0.192).",
+      "Aperçu bloqué, webview recréée. Si le blocage persiste, lisez le texte de la zone d'aperçu et vérifiez InDesign 21.0.0.192 minimum.",
       true
     );
   }
@@ -152,15 +147,7 @@ function onWebviewMessage(msg) {
   if (msg.type === "rendered") {
     lastRender = msg;
     ui.insert.disabled = false;
-    /* la webview a pu forcer le mode via les delimiteurs saisis */
-    ui.display.checked = msg.display;
-    setStatus(
-      (msg.stripped
-        ? "Délimiteurs LaTeX retirés, mode " + (msg.display ? "display" : "inline") + " appliqué.\n"
-        : "") +
-      "Rendu prêt : " + msg.widthEx.toFixed(1) + " x " + msg.heightEx.toFixed(1) +
-      " ex, profondeur " + msg.depthEx.toFixed(2) + " ex."
-    );
+    setStatus("");
     return;
   }
   if (msg.type === "error") {
@@ -182,10 +169,11 @@ function requestRender() {
   }
   /* liaison coupee : le rendu sera relance par onConnected */
   if (!link.isReady()) return;
+  /* le mode display est decide par les delimiteurs saisis ($$, \[ \]) */
   link.send({
     type: "render",
     tex,
-    display: ui.display.checked,
+    display: false,
     mtextFont: ui.mtextFont.value.trim(),
   });
 }
@@ -267,16 +255,14 @@ async function insertFormula() {
     return;
   }
 
-  let text =
-    "Formule insérée : " + widthPt.toFixed(1) + " x " + heightPt.toFixed(1) +
-    " pt, profondeur " + depthPt.toFixed(2) + " pt sous la baseline.\n" +
-    "Fichier : " + file.name;
+  /* succes silencieux : seuls les avertissements utiles s'affichent */
+  let text = "";
   let warn = false;
   if (res.table && res.table.autoGrowEnabled) {
-    text += "\nTableau : rangée passée en hauteur automatique pour afficher la formule (Cmd+Z annule tout).";
+    text = "Rangée du tableau passée en hauteur automatique.";
   }
   if (res.table && res.table.stillOverflows) {
-    text += "\nAttention : la cellule reste en excès (hauteur maximale de rangée ?), la formule peut être masquée.";
+    text += (text ? "\n" : "") + "La cellule reste en excès : la formule peut être masquée.";
     warn = true;
   }
   setStatus(text, warn);

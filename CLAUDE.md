@@ -47,7 +47,9 @@ Conversion d'unités : le SVG MathJax est dimensionné en ex. Le rapport ex/em e
 
 ## Conventions
 
-- Interface du panneau en composants Spectrum UXP (`sp-textarea`, `sp-textfield`, `sp-slider`, `sp-checkbox`, `sp-action-button`, `sp-button`, `sp-label`, `sp-divider`) : style natif InDesign et suivi automatique du thème clair/sombre. `styles.css` ne gère que la disposition, qui doit rester fluide (colonnes repliables en largeur étroite, défilement vertical si le panneau est court, jamais de débordement horizontal).
+- Interface du panneau en composants Spectrum UXP (`sp-textarea`, `sp-textfield`, `sp-slider`, `sp-action-button`, `sp-label`, `sp-divider`) : style natif InDesign et suivi automatique du thème clair/sombre. Exception assumée : le bouton primaire « Insérer » est un `button` maison (bleu Adobe #1473e6, 26 px, coins 2 px), le `sp-button` CTA étant trop massif et trop arrondi. `styles.css` ne gère que la disposition, calquée sur les panneaux natifs (libellé à gauche, contrôle à droite), fluide (défilement vertical si le panneau est court, jamais de débordement horizontal). Attention : `sp-textfield` ne supporte pas `type="number"` (affiche « nan ») ; champs texte + parseFloat côté code.
+- Pas de case « Display » : le mode display est décidé par les délimiteurs saisis (`$$...$$`, `\[...\]`), retirés avant rendu.
+- Le panneau est silencieux en fonctionnement normal : les zones de statut et d'état de liaison (masquées quand vides via `:empty`) ne s'affichent qu'en cas d'erreur ou d'avertissement utile (LaTeX invalide, cellule de tableau en excès, dossier de destination perdu, liaison webview en panne).
 
 - Documentation en français, sans tiret cadratin.
 - Code commenté en français, sobre : uniquement les contraintes non évidentes.

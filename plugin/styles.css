@@ -1,11 +1,12 @@
 /*
  * Sticky Math : mise en page du panneau.
- * Les controles sont des composants Spectrum UXP (sp-*) : ils portent
- * le style natif d'InDesign et suivent son theme clair/sombre tout
- * seuls. Ce fichier ne gere QUE la disposition, fluide :
- * - colonnes repliables (flex-wrap) pour les largeurs etroites ;
- * - controles a 100 % de la largeur disponible ;
- * - defilement vertical quand le panneau est plus court que le contenu.
+ * Les controles sont des composants Spectrum UXP (sp-*), au style natif
+ * InDesign et suivant son theme. Ce fichier ne gere que la disposition,
+ * calquee sur les panneaux natifs : libelle a gauche, controle a
+ * droite, rangees alignees, defilement vertical si le panneau est
+ * court, jamais de debordement horizontal. Seule exception au natif :
+ * le bouton d'action primaire, volontairement bleu Adobe, compact et
+ * a coins quasi droits (2 px), la ou le sp-button CTA est trop massif.
  */
 
 html,
@@ -19,115 +20,116 @@ body {
   font-size: 12px;
 }
 
-.panel {
-  display: flex;
-  flex-direction: column;
-}
-
 /* ---------- groupes ---------- */
 
 .group {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 10px 14px 12px;
 }
 
+/* meme registre que les titres de section des panneaux InDesign
+   ("Transformation", "Aspect") : gras, taille 11, casse normale */
 .group-title {
-  margin: 0;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(128, 128, 128, 0.95);
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: 600;
 }
 
-/* colonnes qui se replient quand le panneau est etroit */
-.cols {
+/* ---------- rangees libelle + controle ---------- */
+
+.row {
   display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.row.wrap {
   flex-wrap: wrap;
-  gap: 8px 16px;
 }
 
-.cols > .field {
-  flex: 1 1 150px;
+.row-label {
+  width: 76px;
+  flex-shrink: 0;
+}
+
+.row > sp-textfield,
+.row > .dest {
+  flex: 1 1 90px;
   min-width: 0;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.field.mode {
-  justify-content: flex-end;
 }
 
 /* ---------- controles ---------- */
 
 sp-textarea,
-sp-textfield,
-sp-slider,
-sp-button {
+sp-slider {
   width: 100%;
 }
 
 sp-textarea {
-  height: 84px;
+  height: 76px;
 }
 
 #renderer {
   display: block;
   width: 100%;
   height: 136px;
-  border: 1px solid rgba(128, 128, 128, 0.5);
+  border: 1px solid rgba(128, 128, 128, 0.45);
   background: #ffffff;
-}
-
-/* champ + bouton associes sur une ligne */
-.joined {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.joined > sp-textfield,
-.joined > .dest {
-  flex: 1;
-  min-width: 0;
 }
 
 .dest {
   font-size: 11px;
   color: rgba(128, 128, 128, 0.95);
-  border: 1px solid rgba(128, 128, 128, 0.5);
-  padding: 5px 6px;
+  border: 1px solid rgba(128, 128, 128, 0.45);
+  padding: 4px 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   box-sizing: border-box;
 }
 
-/* ---------- etats ---------- */
+/* ---------- action primaire ---------- */
 
-.bridge {
-  font-size: 10px;
-  color: rgba(128, 128, 128, 0.95);
-  white-space: pre-wrap;
+.primary {
+  width: 100%;
+  height: 26px;
+  margin-top: 2px;
+  background: #1473e6;
+  border: 1px solid #1473e6;
+  border-radius: 2px;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.bridge.error {
-  color: #d7373f;
+.primary:hover:not(:disabled) {
+  background: #0d66d0;
+  border-color: #0d66d0;
 }
 
+.primary:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ---------- messages (visibles uniquement en cas de probleme) ---------- */
+
+.bridge,
 .status {
-  min-height: 40px;
   font-size: 11px;
   color: rgba(128, 128, 128, 0.95);
   white-space: pre-wrap;
 }
 
+.bridge:empty,
+.status:empty {
+  display: none;
+}
+
+.bridge.error,
 .status.error {
   color: #d7373f;
 }

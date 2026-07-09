@@ -19,48 +19,32 @@
 
     <section class="group">
       <h2 class="group-title">Réglages</h2>
-      <div class="cols">
-        <div class="field">
-          <sp-label>Corps (pt)</sp-label>
-          <div class="joined">
-            <sp-textfield id="fontSize" type="number" placeholder="auto"></sp-textfield>
-            <sp-action-button id="fromCursor" title="Reprendre la taille de police au curseur">Curseur</sp-action-button>
-          </div>
-        </div>
-        <div class="field">
-          <sp-slider id="scale" min="25" max="400" step="5" value="100">
-            <sp-label slot="label">Échelle (%)</sp-label>
-          </sp-slider>
-        </div>
+      <div class="row">
+        <sp-label class="row-label">Corps (pt)</sp-label>
+        <sp-textfield id="fontSize" placeholder="auto"></sp-textfield>
+        <sp-action-button id="fromCursor" title="Reprendre la taille de police au curseur">Curseur</sp-action-button>
       </div>
-      <div class="cols">
-        <div class="field">
-          <sp-label>Police du texte \text{}</sp-label>
-          <div class="joined">
-            <sp-textfield id="mtextFont" placeholder="Défaut MathJax"></sp-textfield>
-            <sp-action-button id="mtextFromCursor" title="Reprendre la famille de police au curseur">Curseur</sp-action-button>
-          </div>
-        </div>
-        <div class="field mode">
-          <sp-label>Mode</sp-label>
-          <sp-checkbox id="display">Display</sp-checkbox>
-        </div>
+      <div class="row">
+        <sp-label class="row-label">Police \text{}</sp-label>
+        <sp-textfield id="mtextFont" placeholder="Défaut MathJax"></sp-textfield>
+        <sp-action-button id="mtextFromCursor" title="Reprendre la famille de police au curseur">Curseur</sp-action-button>
       </div>
+      <sp-slider id="scale" min="25" max="400" step="5" value="100">
+        <sp-label slot="label">Échelle (%)</sp-label>
+      </sp-slider>
     </section>
 
     <sp-divider></sp-divider>
 
     <section class="group">
       <h2 class="group-title">Insertion</h2>
-      <div class="field">
-        <sp-label>Destination des SVG</sp-label>
-        <div class="joined">
-          <div id="destPath" class="dest">Dossier temporaire du plugin</div>
-          <sp-action-button id="chooseDest">Choisir</sp-action-button>
-          <sp-action-button id="resetDest" title="Revenir au dossier temporaire du plugin">Défaut</sp-action-button>
-        </div>
+      <div class="row wrap">
+        <sp-label class="row-label">Destination</sp-label>
+        <div id="destPath" class="dest">Dossier temporaire</div>
+        <sp-action-button id="chooseDest">Choisir</sp-action-button>
+        <sp-action-button id="resetDest" title="Revenir au dossier temporaire du plugin">Défaut</sp-action-button>
       </div>
-      <sp-button id="insert" variant="cta" disabled>Insérer au curseur</sp-button>
+      <button id="insert" class="primary" disabled>Insérer au curseur</button>
       <div id="status" class="status"></div>
     </section>
 
