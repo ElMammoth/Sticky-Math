@@ -18,7 +18,9 @@ Règles qui en découlent, à ne jamais casser :
 
 Décision actée dans docs/adr/0001-moteur-de-rendu.md : MathJax en sortie SVG dans un webview UXP (option B). L'option A (mathjax-full headless dans le panneau) est écartée pour l'aperçu, spike conservé dans `spikes/option-a-liteadaptor/`.
 
-Flux : saisie LaTeX dans le panneau, postMessage vers la webview, rendu MathJax affiché (aperçu), renvoi du SVG sérialisé plus métriques (widthEx, heightEx, depthEx, exEm) au panneau, réécriture des dimensions en pt, écriture en fichier temporaire, placement InDesign.
+Flux : saisie LaTeX dans le panneau, postMessage vers la webview, rendu MathJax affiché (aperçu), renvoi du SVG sérialisé plus métriques (widthEx, heightEx, depthEx, exEm) au panneau, réécriture des dimensions en pt, écriture du fichier SVG dans la destination active, placement InDesign.
+
+Destination des SVG : dossier temporaire du plugin par défaut, ou dossier choisi par l'utilisateur (`localFileSystem: "request"`, sélecteur `getFolder`). L'accès au dossier choisi est conservé entre les sessions par jeton persistant UXP (`createPersistentToken` / `getEntryForPersistentToken`) stocké en localStorage avec le chemin d'affichage. Le dossier est relu à chaque insertion (changement de destination a effet immédiat) et les fichiers n'y sont jamais supprimés par le plugin.
 
 Placement InDesign (`plugin/main.js`) :
 

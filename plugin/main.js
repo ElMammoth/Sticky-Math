@@ -31,6 +31,16 @@ let pingsSent = 0;
  */
 let hashFallback = false;
 
+/*
+ * Destination des SVG. Par defaut le dossier temporaire du plugin.
+ * Quand l'utilisateur choisit un dossier, l'acces est conserve entre
+ * les sessions via un jeton persistant UXP stocke en localStorage,
+ * et les fichiers y restent jusqu'a suppression manuelle.
+ */
+const DEST_TOKEN_KEY = "sticky-math.destToken";
+const DEST_PATH_KEY = "sticky-math.destPath";
+let destFolder = null; // Entry dossier, ou null = temporaire
+
 entrypoints.setup({
   panels: {
     stickyMathPanel: {
@@ -165,7 +175,78 @@ document.addEventListener("DOMContentLoaded", () => {
   insertBtn.addEventListener("click", () => {
     insertFormula().catch((e) => setStatus("Échec de l'insertion : " + (e && e.message ? e.message : e), true));
   });
+
+  document.getElementById("chooseDest").addEventListener("click", () => {
+    chooseDestFolder().catch((e) => setStatus("Choix du dossier impossible : " + (e && e.message ? e.message : e), true));
+  });
+  document.getElementById("resetDest").addEventListener("click", () => {
+    destFolder = null;
+    localStorage.removeItem(DEST_TOKEN_KEY);
+    localStorage.removeItem(DEST_PATH_KEY);
+    updateDestLabel();
+    setStatus("Destination : dossier temporaire du plugin.");
+  });
+
+  restoreDestFolder();
 });
+
+function updateDestLabel() {
+  const label = document.getElementById("destPath");
+  if (destFolder) {
+    label.textContent = destFolder.nativePath;
+    label.title = destFolder.nativePath;
+  } else {
+    label.textContent = "Dossier temporaire du plugin (par défaut)";
+    label.title = "";
+  }
+}
+
+async function chooseDestFolder() {
+  const folder = await uxpStorage.getFolder();
+  if (!folder) return; // selection annulee
+  const token = await uxpStorage.createPersistentToken(folder);
+  localStorage.setItem(DEST_TOKEN_KEY, token);
+  localStorage.setItem(DEST_PATH_KEY, folder.nativePath);
+  destFolder = folder;
+  updateDestLabel();
+  setStatus("Destination des SVG : " + folder.nativePath);
+}
+
+/* Retrouve le dossier choisi lors d'une session precedente. */
+async function restoreDestFolder() {
+  const token = localStorage.getItem(DEST_TOKEN_KEY);
+  if (!token) return;
+  try {
+    const entry = await uxpStorage.getEntryForPersistentToken(token);
+    if (entry && entry.isFolder) {
+      destFolder = entry;
+      updateDestLabel();
+      return;
+    }
+    throw new Error("entrée invalide");
+  } catch (e) {
+    localStorage.removeItem(DEST_TOKEN_KEY);
+    const oldPath = localStorage.getItem(DEST_PATH_KEY);
+    localStorage.removeItem(DEST_PATH_KEY);
+    setStatus(
+      "Le dossier de destination mémorisé" + (oldPath ? " (" + oldPath + ")" : "") +
+      " n'est plus accessible. Retour au dossier temporaire ; re-choisissez une destination si besoin.",
+      true
+    );
+  }
+}
+
+/* Nom de fichier horodate, lisible et sans collision. */
+function svgFileName() {
+  const d = new Date();
+  const pad = (n, l) => String(n).padStart(l || 2, "0");
+  return (
+    "sticky-math-" +
+    d.getFullYear() + pad(d.getMonth() + 1) + pad(d.getDate()) +
+    "-" + pad(d.getHours()) + pad(d.getMinutes()) + pad(d.getSeconds()) +
+    "-" + pad(d.getMilliseconds(), 3) + ".svg"
+  );
+}
 
 /*
  * Envoi brut vers la webview par les deux canaux. Le numero de sequence
@@ -271,9 +352,23 @@ async function insertFormula() {
     .replace(/width="[^"]*"/, 'width="' + widthPt.toFixed(4) + 'pt"')
     .replace(/height="[^"]*"/, 'height="' + heightPt.toFixed(4) + 'pt"');
 
-  const tempFolder = await uxpStorage.getTemporaryFolder();
-  const file = await tempFolder.createFile("sticky-math-" + Date.now() + ".svg", { overwrite: true });
-  await file.write(svgText);
+  /* destFolder est lu au moment de l'insertion : un changement de
+     destination s'applique donc immediatement aux fichiers suivants */
+  let file;
+  try {
+    const targetFolder = destFolder || (await uxpStorage.getTemporaryFolder());
+    file = await targetFolder.createFile(svgFileName(), { overwrite: true });
+    await file.write(svgText);
+  } catch (e) {
+    setStatus(
+      "Impossible d'écrire dans " +
+      (destFolder ? "« " + destFolder.nativePath + " »" : "le dossier temporaire") +
+      " : " + (e && e.message ? e.message : e) +
+      (destFolder ? "\nRe-choisissez un dossier de destination." : ""),
+      true
+    );
+    return;
+  }
 
   const doc = app.activeDocument;
   const previousUnit = app.scriptPreferences.measurementUnit;
@@ -314,7 +409,8 @@ async function insertFormula() {
 
     setStatus(
       "Formule insérée : " + widthPt.toFixed(1) + " x " + heightPt.toFixed(1) +
-      " pt, profondeur " + depthPt.toFixed(2) + " pt sous la baseline."
+      " pt, profondeur " + depthPt.toFixed(2) + " pt sous la baseline.\n" +
+      "Fichier : " + file.name
     );
   } finally {
     app.scriptPreferences.measurementUnit = previousUnit;

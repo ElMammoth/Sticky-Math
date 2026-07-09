@@ -32,7 +32,7 @@
     }
   ],
   "requiredPermissions": {
-    "localFileSystem": "plugin",
+    "localFileSystem": "request",
     "webview": {
       "allow": "yes",
       "allowLocalRendering": "yes",

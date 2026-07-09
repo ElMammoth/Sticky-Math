@@ -44,6 +44,7 @@ Si Creative Cloud affiche « Compatible app required » :
 2. Taper du LaTeX dans le champ du panneau, l'aperçu se met à jour.
 3. Régler le corps en pt (bouton « Depuis le curseur » pour reprendre la taille du texte courant) et l'échelle en pourcentage.
 4. Cliquer sur « Insérer au curseur » : la formule est placée en rectangle ancré inline, assise sur la baseline grâce à la profondeur renvoyée par MathJax.
+5. Destination des SVG : par défaut, les fichiers vont dans le dossier temporaire du plugin. Le bouton « Choisir... » permet de définir n'importe quel dossier ; le choix est mémorisé entre les sessions (jeton persistant UXP), s'applique immédiatement aux insertions suivantes, et les fichiers y restent jusqu'à suppression manuelle. « Défaut » revient au dossier temporaire.
 
 La source LaTeX, le corps, l'échelle et la profondeur sont stockés dans le label de l'objet placé en vue de la ré-édition (fonctionnalité à venir, voir TODO.md).
 

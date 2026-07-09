@@ -16,7 +16,8 @@
 - [ ] Aperçu à l'échelle : refléter corps et échelle dans la taille d'affichage de l'aperçu (font-size du conteneur webview) pour juger l'harmonie optique avec le texte.
 - [ ] UI Spectrum (composants sp-*), thème sombre du panneau et de la zone d'aperçu.
 - [ ] Macros LaTeX utilisateur (préambule configurable passé à MathJax) et bibliothèque de formules récentes.
-- [ ] Nettoyage des fichiers SVG temporaires après placement (ou intégration en données du document si possible).
+- [x] Destination des SVG choisie par l'utilisateur, persistante entre sessions, fichiers conservés jusqu'à suppression manuelle (le nettoyage automatique n'est plus souhaité).
+- [ ] Option future : intégrer le SVG en données du document (embed du lien InDesign) pour les fichiers restés en dossier temporaire.
 - [ ] Groupement d'annulation : envelopper l'insertion dans un seul pas d'undo (app.doScript avec UndoModes.ENTIRE_SCRIPT en UXPScript).
 - [ ] Mode display vs inline : traitement typographique distinct (formule display en paragraphe dédié, centrage, espacement).
 - [ ] Packaging .ccx et icônes définitives.
