@@ -7,6 +7,7 @@
 - [ ] Insérer une formule inline dans un paragraphe et vérifier le calage sur la baseline. Confirmer le SIGNE de `anchorYoffset` (plugin/main.js) : si la formule est décalée du mauvais côté, inverser en `+depthPt`.
 - [ ] Vérifier visuellement la fidélité de l'importateur SVG d'InDesign sur une formule chargée (racine, fraction, exposants) : comparer à l'aperçu à fort zoom.
 - [ ] Vérifier que le rectangle ancré n'a ni contour ni fond parasites.
+- [ ] Vérifier l'import InDesign des éléments `<text>` du SVG (segments `\text{}` avec police choisie, caractères accentués) : police respectée, pas de substitution. Si l'importateur trahit le rendu, envisager la vectorisation de ces segments.
 
 ## Prochaines étapes fonctionnelles
 

@@ -51,11 +51,20 @@ function normalizeTex(raw, display) {
   return { tex: tex, display: !!display, stripped: false };
 }
 
-function render(rawTex, displayRequested) {
+function render(rawTex, displayRequested, mtextFont) {
   var seq = ++renderSeq;
   var norm = normalizeTex(rawTex, displayRequested);
   var tex = norm.tex;
   var display = norm.display;
+  /*
+   * Police des segments \text{} : les glyphes sortent alors en <text>
+   * SVG portant cette famille, mesures par le vrai moteur de la
+   * webview. Modifiable a chaud sans rechargement : verifie, les
+   * metriques restent exactes. Vide = police TeX de MathJax (les
+   * caracteres qu'elle ne couvre pas, accents notamment, sortent deja
+   * en <text> avec la police de secours serif).
+   */
+  MathJax.startup.document.outputJax.options.mtextFont = mtextFont || "";
   MathJax.startup.promise
     .then(function () {
       MathJax.texReset();
@@ -95,6 +104,7 @@ function render(rawTex, displayRequested) {
         tex: tex,
         display: display,
         stripped: norm.stripped,
+        mtextFont: mtextFont || "",
         svg: svg.outerHTML,
         widthEx: widthEx,
         heightEx: heightEx,
@@ -149,7 +159,7 @@ function handleMessage(msg, via) {
   }
   if (msg.type === "render") {
     boot("");
-    render(msg.tex, msg.display);
+    render(msg.tex, msg.display, msg.mtextFont);
   }
   if (msg.type === "clear") clearPreview();
 }

@@ -41,6 +41,9 @@ const DEST_TOKEN_KEY = "sticky-math.destToken";
 const DEST_PATH_KEY = "sticky-math.destPath";
 let destFolder = null; // Entry dossier, ou null = temporaire
 
+/* Police des segments \text{}, memorisee entre les sessions. */
+const MTEXT_FONT_KEY = "sticky-math.mtextFont";
+
 entrypoints.setup({
   panels: {
     stickyMathPanel: {
@@ -141,6 +144,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }, 8000);
 
+  const mtextFontInput = document.getElementById("mtextFont");
+  mtextFontInput.value = localStorage.getItem(MTEXT_FONT_KEY) || "";
+
   const requestRender = () => {
     const tex = texInput.value.trim();
     if (!tex) {
@@ -149,7 +155,12 @@ document.addEventListener("DOMContentLoaded", () => {
       postToWebview({ type: "clear" });
       return;
     }
-    postToWebview({ type: "render", tex, display: displayInput.checked });
+    postToWebview({
+      type: "render",
+      tex,
+      display: displayInput.checked,
+      mtextFont: mtextFontInput.value.trim(),
+    });
   };
 
   texInput.addEventListener("input", () => {
@@ -157,6 +168,24 @@ document.addEventListener("DOMContentLoaded", () => {
     debounceTimer = setTimeout(requestRender, 250);
   });
   displayInput.addEventListener("change", requestRender);
+
+  mtextFontInput.addEventListener("input", () => {
+    localStorage.setItem(MTEXT_FONT_KEY, mtextFontInput.value.trim());
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(requestRender, 400);
+  });
+
+  document.getElementById("mtextFromCursor").addEventListener("click", () => {
+    const family = cursorFontFamily();
+    if (family) {
+      mtextFontInput.value = family;
+      localStorage.setItem(MTEXT_FONT_KEY, family);
+      setStatus("Police du texte reprise du curseur : " + family);
+      requestRender();
+    } else {
+      setStatus("Placez le curseur texte dans un bloc pour lire sa police.");
+    }
+  });
 
   scaleInput.addEventListener("input", () => {
     scaleValue.textContent = scaleInput.value;
@@ -306,6 +335,27 @@ function cursorPointSize() {
   return null;
 }
 
+/* Famille de police au point d'insertion courant, ou null. */
+function cursorFontFamily() {
+  try {
+    const sel = app.selection;
+    if (!sel || sel.length === 0) return null;
+    let item = sel[0];
+    if (item.appliedFont === undefined && item.insertionPoints && item.insertionPoints.length > 0) {
+      item = item.insertionPoints.item(0);
+    }
+    const font = item.appliedFont;
+    if (!font) return null;
+    /* selon le contexte, Font object ou chaine "Famille\tStyle" */
+    if (typeof font === "string") return font.split("\t")[0];
+    if (font.fontFamily) return font.fontFamily;
+    if (font.name) return font.name.split("\t")[0];
+  } catch (e) {
+    /* pas de selection texte */
+  }
+  return null;
+}
+
 /* Point d'insertion courant dans un texte, ou null. */
 function currentInsertionPoint() {
   const sel = app.selection;
@@ -404,6 +454,7 @@ async function insertFormula() {
       scalePct: scalePct,
       depthEx: lastRender.depthEx,
       exEm: lastRender.exEm,
+      mtextFont: lastRender.mtextFont || "",
     });
     rect.insertLabel(LABEL_KEY + ":tex", lastRender.tex);
 

@@ -28,8 +28,13 @@
      * Une formule plus large que le panneau est reduite pour rester
      * entierement visible. Reduction vectorielle d'affichage uniquement :
      * le SVG serialise pour l'insertion n'est pas touche.
+     * IMPERATIF : ne cibler que le SVG racine (enfant direct du
+     * conteneur MathJax). Les caracteres extensibles (accolades de
+     * \underbrace, grands delimiteurs) sont assembles dans des <svg>
+     * imbriques a dimensions explicites ; leur appliquer height: auto
+     * disloque l'assemblage (barre d'extension a travers le texte).
      */
-    #preview svg {
+    #preview mjx-container > svg {
       max-width: 100%;
       height: auto;
     }

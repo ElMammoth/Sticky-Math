@@ -11,7 +11,8 @@ Règles qui en découlent, à ne jamais casser :
 1. Le LaTeX est rendu UNE SEULE FOIS, en SVG, par MathJax dans la webview (`plugin/webview/renderer.js`). L'aperçu est ce nœud DOM ; le SVG inséré est la sérialisation de ce même nœud.
 2. Aucun second moteur de rendu ne retouche l'expression. En particulier, le rendu MathML natif d'InDesign n'est PAS utilisé pour l'affichage final (voir docs/rapport-environnement.md pour ce que permet cette API, réservée à un éventuel futur mode optionnel texte éditable).
 3. La seule transformation autorisée sur le SVG avant placement : réécrire les attributs `width` et `height` (ex vers pt) dans `plugin/main.js`. Conversion d'unités uniquement, jamais de modification du viewBox ni des tracés.
-4. `fontCache: "none"` est imposé côté MathJax : glyphes en paths inline, pas de `<defs>/<use>`, pour la compatibilité avec l'importateur SVG d'InDesign.
+4. `fontCache: "none"` est imposé côté MathJax : glyphes mathématiques en paths inline, pas de `<defs>/<use>`, pour la compatibilité avec l'importateur SVG d'InDesign. Nuance assumée : les segments `\text{}` (et tout caractère absent des polices TeX, accents compris) sortent en éléments `<text>` SVG ; l'option « Police du texte » du panneau (`mtextFont` MathJax, modifiable à chaud) leur applique une famille choisie par l'utilisateur, qui doit exister côté InDesign. La fidélité de ces `<text>` à l'import InDesign est à vérifier visuellement.
+5. Le CSS d'ajustement de l'aperçu ne doit cibler QUE le SVG racine (`#preview mjx-container > svg`) : les caractères extensibles (accolades de `\underbrace`, grands délimiteurs) sont des assemblages de `<svg>` imbriqués à dimensions explicites, qu'un `height: auto` global disloque.
 5. La source LaTeX, le corps, l'échelle et la profondeur sont stockés à part (label JSON de l'objet placé) pour la ré-édition ; le visuel reste le SVG issu de l'aperçu.
 
 ## Architecture
@@ -28,7 +29,7 @@ Placement InDesign (`plugin/main.js`) :
 - `rect.place(cheminSvg)` puis `fit(FRAME_TO_CONTENT)` ;
 - baseline : `anchoredObjectSettings.anchorYoffset = -depthPt` où depthPt vient du `vertical-align` MathJax (profondeur sous la baseline) ; signe à confirmer visuellement au premier essai dans InDesign ;
 - unités forcées en points via `app.scriptPreferences.measurementUnit` (restaurées en finally) ;
-- label : `rect.label` = JSON `{ app: "sticky-math", v, tex, display, corps, scalePct, depthEx, exEm }` et `rect.insertLabel("sticky-math:tex", tex)`.
+- label : `rect.label` = JSON `{ app: "sticky-math", v, tex, display, corps, scalePct, depthEx, exEm, mtextFont }` et `rect.insertLabel("sticky-math:tex", tex)`.
 
 Conversion d'unités : le SVG MathJax est dimensionné en ex. Le rapport ex/em est MESURÉ par la webview (`MathJax.getMetricsFor`, environ 0.459, pas 0.5). taille en pt = valeurEx * exEm * corps * (échelle / 100).
 
