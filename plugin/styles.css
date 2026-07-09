@@ -1,21 +1,21 @@
 /*
- * Sticky Math : design geometrique et minimal.
- * Regles : aucun arrondi, grille d'espacement de 8 px, deux gris
- * neutres (traits et texte secondaire) plus un accent unique pour
- * l'action primaire. Les couleurs en rgba de gris fonctionnent sur les
- * themes clairs et sombres d'InDesign.
+ * Sticky Math : mise en page du panneau.
+ * Les controles sont des composants Spectrum UXP (sp-*) : ils portent
+ * le style natif d'InDesign et suivent son theme clair/sombre tout
+ * seuls. Ce fichier ne gere QUE la disposition, fluide :
+ * - colonnes repliables (flex-wrap) pour les largeurs etroites ;
+ * - controles a 100 % de la largeur disponible ;
+ * - defilement vertical quand le panneau est plus court que le contenu.
  */
 
-:root {
-  --line: rgba(128, 128, 128, 0.5);
-  --line-soft: rgba(128, 128, 128, 0.25);
-  --muted: rgba(128, 128, 128, 0.95);
-  --accent: #1473e6;
-  --error: #d7373f;
+html,
+body {
+  height: 100%;
 }
 
 body {
   margin: 0;
+  overflow-y: auto;
   font-size: 12px;
 }
 
@@ -30,8 +30,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 16px;
-  border-bottom: 1px solid var(--line-soft);
+  padding: 12px 16px;
 }
 
 .group-title {
@@ -40,145 +39,95 @@ body {
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: rgba(128, 128, 128, 0.95);
 }
 
+/* colonnes qui se replient quand le panneau est etroit */
 .cols {
   display: flex;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 8px 16px;
 }
 
 .cols > .field {
-  flex: 1;
+  flex: 1 1 150px;
   min-width: 0;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
-.label {
-  font-size: 10px;
-  color: var(--muted);
+.field.mode {
+  justify-content: flex-end;
 }
 
 /* ---------- controles ---------- */
 
-textarea,
-input[type="text"],
-input[type="number"],
-button,
-.dest {
-  border: 1px solid var(--line);
-  border-radius: 0;
-  background: transparent;
-  color: inherit;
-  font-size: 12px;
-  padding: 4px 6px;
-  box-sizing: border-box;
+sp-textarea,
+sp-textfield,
+sp-slider,
+sp-button {
+  width: 100%;
 }
 
-textarea {
-  min-height: 72px;
-  font-family: monospace;
-  font-size: 13px;
-  resize: vertical;
+sp-textarea {
+  height: 84px;
 }
 
 #renderer {
   display: block;
   width: 100%;
   height: 136px;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(128, 128, 128, 0.5);
   background: #ffffff;
 }
 
-/* champ + bouton accoles, bordures partagees */
+/* champ + bouton associes sur une ligne */
 .joined {
   display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
-.joined > * {
-  min-width: 0;
-}
-
-.joined > input,
+.joined > sp-textfield,
 .joined > .dest {
   flex: 1;
-}
-
-.joined > * + * {
-  margin-left: -1px;
-}
-
-button {
-  cursor: pointer;
-  white-space: nowrap;
-  font-size: 11px;
-}
-
-button:hover {
-  border-color: var(--muted);
-}
-
-.checkline {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 26px;
+  min-width: 0;
 }
 
 .dest {
   font-size: 11px;
-  color: var(--muted);
+  color: rgba(128, 128, 128, 0.95);
+  border: 1px solid rgba(128, 128, 128, 0.5);
+  padding: 5px 6px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-/* ---------- action primaire ---------- */
-
-.primary {
-  width: 100%;
-  padding: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  background: var(--accent);
-  border-color: var(--accent);
-  color: #ffffff;
-}
-
-.primary:hover {
-  border-color: var(--accent);
-}
-
-.primary:disabled {
-  opacity: 0.35;
-  cursor: default;
+  box-sizing: border-box;
 }
 
 /* ---------- etats ---------- */
 
 .bridge {
   font-size: 10px;
-  color: var(--muted);
+  color: rgba(128, 128, 128, 0.95);
   white-space: pre-wrap;
 }
 
 .bridge.error {
-  color: var(--error);
+  color: #d7373f;
 }
 
 .status {
   min-height: 40px;
   font-size: 11px;
-  color: var(--muted);
+  color: rgba(128, 128, 128, 0.95);
   white-space: pre-wrap;
 }
 
 .status.error {
-  color: var(--error);
+  color: #d7373f;
 }

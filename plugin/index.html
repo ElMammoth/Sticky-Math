@@ -10,55 +10,57 @@
 
     <section class="group">
       <h2 class="group-title">Formule</h2>
-      <textarea id="tex" placeholder="LaTeX, ex. : x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}" spellcheck="false"></textarea>
+      <sp-textarea id="tex" placeholder="LaTeX, ex. : x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}"></sp-textarea>
       <webview id="renderer" src="plugin:/webview/renderer.html"></webview>
       <div id="bridge" class="bridge"></div>
     </section>
 
+    <sp-divider></sp-divider>
+
     <section class="group">
       <h2 class="group-title">Réglages</h2>
       <div class="cols">
-        <label class="field">
-          <span class="label">Corps (pt)</span>
+        <div class="field">
+          <sp-label>Corps (pt)</sp-label>
           <div class="joined">
-            <input id="fontSize" type="number" min="1" max="500" step="0.5" placeholder="auto" />
-            <button id="fromCursor" title="Reprendre la taille de police au curseur">Curseur</button>
+            <sp-textfield id="fontSize" type="number" placeholder="auto"></sp-textfield>
+            <sp-action-button id="fromCursor" title="Reprendre la taille de police au curseur">Curseur</sp-action-button>
           </div>
-        </label>
-        <label class="field">
-          <span class="label">Échelle : <span id="scaleValue">100</span> %</span>
-          <input id="scale" type="range" min="25" max="400" step="5" value="100" />
-        </label>
+        </div>
+        <div class="field">
+          <sp-slider id="scale" min="25" max="400" step="5" value="100">
+            <sp-label slot="label">Échelle (%)</sp-label>
+          </sp-slider>
+        </div>
       </div>
       <div class="cols">
-        <label class="field">
-          <span class="label">Police du texte \text{}</span>
+        <div class="field">
+          <sp-label>Police du texte \text{}</sp-label>
           <div class="joined">
-            <input id="mtextFont" type="text" placeholder="Défaut MathJax" />
-            <button id="mtextFromCursor" title="Reprendre la famille de police au curseur">Curseur</button>
+            <sp-textfield id="mtextFont" placeholder="Défaut MathJax"></sp-textfield>
+            <sp-action-button id="mtextFromCursor" title="Reprendre la famille de police au curseur">Curseur</sp-action-button>
           </div>
-        </label>
-        <label class="field">
-          <span class="label">Mode</span>
-          <span class="checkline">
-            <input id="display" type="checkbox" />
-            <span>Display</span>
-          </span>
-        </label>
+        </div>
+        <div class="field mode">
+          <sp-label>Mode</sp-label>
+          <sp-checkbox id="display">Display</sp-checkbox>
+        </div>
       </div>
     </section>
+
+    <sp-divider></sp-divider>
 
     <section class="group">
       <h2 class="group-title">Insertion</h2>
       <div class="field">
-        <span class="label">Destination des SVG</span>
+        <sp-label>Destination des SVG</sp-label>
         <div class="joined">
           <div id="destPath" class="dest">Dossier temporaire du plugin</div>
-          <button id="chooseDest">Choisir</button>
-          <button id="resetDest" title="Revenir au dossier temporaire du plugin">Défaut</button>
+          <sp-action-button id="chooseDest">Choisir</sp-action-button>
+          <sp-action-button id="resetDest" title="Revenir au dossier temporaire du plugin">Défaut</sp-action-button>
         </div>
       </div>
-      <button id="insert" class="primary" disabled>Insérer au curseur</button>
+      <sp-button id="insert" variant="cta" disabled>Insérer au curseur</sp-button>
       <div id="status" class="status"></div>
     </section>
 

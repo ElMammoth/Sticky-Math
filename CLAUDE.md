@@ -47,6 +47,8 @@ Conversion d'unités : le SVG MathJax est dimensionné en ex. Le rapport ex/em e
 
 ## Conventions
 
+- Interface du panneau en composants Spectrum UXP (`sp-textarea`, `sp-textfield`, `sp-slider`, `sp-checkbox`, `sp-action-button`, `sp-button`, `sp-label`, `sp-divider`) : style natif InDesign et suivi automatique du thème clair/sombre. `styles.css` ne gère que la disposition, qui doit rester fluide (colonnes repliables en largeur étroite, défilement vertical si le panneau est court, jamais de débordement horizontal).
+
 - Documentation en français, sans tiret cadratin.
 - Code commenté en français, sobre : uniquement les contraintes non évidentes.
 - Le panneau parle à la webview en JSON stringifié dans les deux sens (types de messages : render, clear, ready, rendered, error).

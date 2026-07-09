@@ -15,7 +15,7 @@
       "label": {
         "default": "Sticky Math"
       },
-      "minimumSize": { "width": 320, "height": 380 },
+      "minimumSize": { "width": 260, "height": 320 },
       "maximumSize": { "width": 2048, "height": 2048 },
       "preferredDockedSize": { "width": 380, "height": 540 },
       "preferredFloatingSize": { "width": 380, "height": 540 },

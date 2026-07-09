@@ -31,7 +31,6 @@ document.addEventListener("DOMContentLoaded", () => {
     display: document.getElementById("display"),
     fontSize: document.getElementById("fontSize"),
     scale: document.getElementById("scale"),
-    scaleValue: document.getElementById("scaleValue"),
     mtextFont: document.getElementById("mtextFont"),
     insert: document.getElementById("insert"),
     destPath: document.getElementById("destPath"),
@@ -59,9 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   ui.tex.addEventListener("input", () => scheduleRender(250));
   ui.display.addEventListener("change", requestRender);
-  ui.scale.addEventListener("input", () => {
-    ui.scaleValue.textContent = ui.scale.value;
-  });
+  /* sp-slider affiche sa propre valeur, pas de libelle a synchroniser */
   ui.mtextFont.addEventListener("input", () => {
     prefs.setMtextFont(ui.mtextFont.value.trim());
     scheduleRender(400);
