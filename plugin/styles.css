@@ -1,8 +1,56 @@
+/*
+ * Sticky Math : design geometrique et minimal.
+ * Regles : aucun arrondi, grille d'espacement de 8 px, deux gris
+ * neutres (traits et texte secondaire) plus un accent unique pour
+ * l'action primaire. Les couleurs en rgba de gris fonctionnent sur les
+ * themes clairs et sombres d'InDesign.
+ */
+
+:root {
+  --line: rgba(128, 128, 128, 0.5);
+  --line-soft: rgba(128, 128, 128, 0.25);
+  --muted: rgba(128, 128, 128, 0.95);
+  --accent: #1473e6;
+  --error: #d7373f;
+}
+
+body {
+  margin: 0;
+  font-size: 12px;
+}
+
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 10px;
+}
+
+/* ---------- groupes ---------- */
+
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.group-title {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cols {
+  display: flex;
+  gap: 16px;
+}
+
+.cols > .field {
+  flex: 1;
+  min-width: 0;
 }
 
 .field {
@@ -11,86 +59,126 @@
   gap: 4px;
 }
 
-.field-label {
-  font-size: 11px;
-  opacity: 0.75;
+.label {
+  font-size: 10px;
+  color: var(--muted);
 }
 
-#tex {
+/* ---------- controles ---------- */
+
+textarea,
+input[type="text"],
+input[type="number"],
+button,
+.dest {
+  border: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 12px;
+  padding: 4px 6px;
+  box-sizing: border-box;
+}
+
+textarea {
   min-height: 72px;
   font-family: monospace;
   font-size: 13px;
   resize: vertical;
 }
 
-.preview-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
 #renderer {
+  display: block;
   width: 100%;
-  height: 140px;
-  border: 1px solid rgba(128, 128, 128, 0.4);
-  border-radius: 4px;
+  height: 136px;
+  border: 1px solid var(--line);
+  background: #ffffff;
 }
 
-.row {
+/* champ + bouton accoles, bordures partagees */
+.joined {
   display: flex;
-  align-items: flex-end;
-  gap: 10px;
 }
 
-.small {
-  width: 90px;
+.joined > * {
+  min-width: 0;
 }
 
-.grow {
+.joined > input,
+.joined > .dest {
   flex: 1;
 }
 
-.checkbox {
-  flex-direction: row;
-  align-items: center;
-  gap: 4px;
-  padding-bottom: 4px;
+.joined > * + * {
+  margin-left: -1px;
 }
 
-.primary {
-  font-weight: bold;
-}
-
-.dest-path {
+button {
+  cursor: pointer;
+  white-space: nowrap;
   font-size: 11px;
-  opacity: 0.85;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 3px;
-  padding: 3px 6px;
+}
+
+button:hover {
+  border-color: var(--muted);
+}
+
+.checkline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+}
+
+.dest {
+  font-size: 11px;
+  color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* ---------- action primaire ---------- */
+
+.primary {
+  width: 100%;
+  padding: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+}
+
+.primary:hover {
+  border-color: var(--accent);
+}
+
+.primary:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ---------- etats ---------- */
+
 .bridge {
   font-size: 10px;
-  opacity: 0.6;
+  color: var(--muted);
   white-space: pre-wrap;
 }
 
 .bridge.error {
-  color: #e34850;
-  opacity: 1;
+  color: var(--error);
 }
 
 .status {
-  min-height: 28px;
+  min-height: 40px;
   font-size: 11px;
+  color: var(--muted);
   white-space: pre-wrap;
-  opacity: 0.85;
 }
 
 .status.error {
-  color: #e34850;
-  opacity: 1;
+  color: var(--error);
 }

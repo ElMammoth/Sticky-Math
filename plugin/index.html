@@ -7,56 +7,61 @@
 </head>
 <body>
   <div class="panel">
-    <label class="field">
-      <span class="field-label">LaTeX</span>
-      <textarea id="tex" placeholder="Ex. : x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}" spellcheck="false"></textarea>
-    </label>
 
-    <div class="preview-wrap">
-      <span class="field-label">Aperçu (rendu MathJax, celui qui sera inséré)</span>
+    <section class="group">
+      <h2 class="group-title">Formule</h2>
+      <textarea id="tex" placeholder="LaTeX, ex. : x = \frac{-b \pm \sqrt{b^2-4ac}}{2a}" spellcheck="false"></textarea>
       <webview id="renderer" src="plugin:/webview/renderer.html"></webview>
-    </div>
+      <div id="bridge" class="bridge"></div>
+    </section>
 
-    <div class="row">
-      <label class="field small">
-        <span class="field-label">Corps (pt)</span>
-        <input id="fontSize" type="number" min="1" max="500" step="0.5" placeholder="auto" />
-      </label>
-      <button id="fromCursor" title="Reprendre la taille de police au curseur">Depuis le curseur</button>
-    </div>
-
-    <div class="row">
-      <label class="field grow">
-        <span class="field-label">Échelle : <span id="scaleValue">100</span> %</span>
-        <input id="scale" type="range" min="25" max="400" step="5" value="100" />
-      </label>
-      <label class="field checkbox">
-        <input id="display" type="checkbox" />
-        <span>Display</span>
-      </label>
-    </div>
-
-    <div class="row">
-      <label class="field grow">
-        <span class="field-label">Police du texte (\text{...})</span>
-        <input id="mtextFont" type="text" placeholder="Défaut MathJax (laisser vide)" />
-      </label>
-      <button id="mtextFromCursor" title="Reprendre la famille de police du texte au curseur">Du curseur</button>
-    </div>
-
-    <div class="row">
-      <div class="field grow">
-        <span class="field-label">Destination des SVG</span>
-        <div id="destPath" class="dest-path">Dossier temporaire du plugin (par défaut)</div>
+    <section class="group">
+      <h2 class="group-title">Réglages</h2>
+      <div class="cols">
+        <label class="field">
+          <span class="label">Corps (pt)</span>
+          <div class="joined">
+            <input id="fontSize" type="number" min="1" max="500" step="0.5" placeholder="auto" />
+            <button id="fromCursor" title="Reprendre la taille de police au curseur">Curseur</button>
+          </div>
+        </label>
+        <label class="field">
+          <span class="label">Échelle : <span id="scaleValue">100</span> %</span>
+          <input id="scale" type="range" min="25" max="400" step="5" value="100" />
+        </label>
       </div>
-      <button id="chooseDest">Choisir...</button>
-      <button id="resetDest" title="Revenir au dossier temporaire du plugin">Défaut</button>
-    </div>
+      <div class="cols">
+        <label class="field">
+          <span class="label">Police du texte \text{}</span>
+          <div class="joined">
+            <input id="mtextFont" type="text" placeholder="Défaut MathJax" />
+            <button id="mtextFromCursor" title="Reprendre la famille de police au curseur">Curseur</button>
+          </div>
+        </label>
+        <label class="field">
+          <span class="label">Mode</span>
+          <span class="checkline">
+            <input id="display" type="checkbox" />
+            <span>Display</span>
+          </span>
+        </label>
+      </div>
+    </section>
 
-    <button id="insert" class="primary" disabled>Insérer au curseur</button>
+    <section class="group">
+      <h2 class="group-title">Insertion</h2>
+      <div class="field">
+        <span class="label">Destination des SVG</span>
+        <div class="joined">
+          <div id="destPath" class="dest">Dossier temporaire du plugin</div>
+          <button id="chooseDest">Choisir</button>
+          <button id="resetDest" title="Revenir au dossier temporaire du plugin">Défaut</button>
+        </div>
+      </div>
+      <button id="insert" class="primary" disabled>Insérer au curseur</button>
+      <div id="status" class="status"></div>
+    </section>
 
-    <div id="bridge" class="bridge">Liaison webview : démarrage...</div>
-    <div id="status" class="status"></div>
   </div>
 </body>
 </html>
