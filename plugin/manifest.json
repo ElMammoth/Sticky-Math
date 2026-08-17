@@ -21,8 +21,8 @@
       "preferredFloatingSize": { "width": 380, "height": 540 },
       "icons": [
         {
-          "width": 23,
-          "height": 23,
+          "width": 24,
+          "height": 24,
           "path": "icons/icon.png",
           "scale": [1, 2],
           "theme": ["darkest", "dark", "medium", "lightest", "light", "all"],

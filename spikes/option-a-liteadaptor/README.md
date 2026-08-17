@@ -1,21 +1,33 @@
-# Spike option A : mathjax-full headless (liteAdaptor)
+# Spike, option A: mathjax-full headless (liteAdaptor)
 
-Objectif : vérifier si mathjax-full peut rendre du TeX en SVG sans DOM navigateur, dans une perspective d'exécution directe dans le runtime UXP.
+Goal: find out whether mathjax-full can render TeX to SVG without a browser DOM, with a view to
+running it directly in the UXP runtime.
 
-## Résultats (2026-07-06, Node 22)
+This code is **not used by the plugin** and is never imported by it. It is kept because
+[ADR 0001](../../docs/adr/0001-rendering-engine.md) rejects this approach, and that decision is only
+credible with the experiment attached.
 
-- `render.js` : le rendu TeX vers SVG fonctionne, avec les métriques de baseline (`vertical-align` en ex). Avec les options `em: 16, ex: 8`, la sortie est déterministe.
-- `build.mjs` + `entry.js` : bundle esbuild de 2.68 Mo, format IIFE, plateforme neutral (aucun module Node requis), exécuté avec succès hors Node.
-- Piège identifié : `mathjax-full/js/components/version.js` contient `var load = eval('require')`. UXP interdit eval. Contournement prouvé : substitution du module par `version-stub.js` via un plugin esbuild onResolve. Après substitution, plus aucun eval dans le bundle.
+## Results (2026-07-06, Node 22)
+
+- `render.js`: TeX to SVG rendering works, with baseline metrics (`vertical-align` in `ex`). With the
+  options `em: 16, ex: 8`, output is deterministic.
+- `build.mjs` + `entry.js`: a 2.68 MB esbuild bundle, IIFE format, neutral platform (no Node module
+  required), executed successfully outside Node.
+- Trap identified: `mathjax-full/js/components/version.js` contains `var load = eval('require')`, and
+  UXP forbids `eval`. Workaround proven: substitute the module with `version-stub.js` through an
+  esbuild `onResolve` plugin. After substitution there is no `eval` left in the bundle.
 
 ## Verdict
 
-Techniquement viable pour du rendu headless, mais écarté comme moteur principal : l'aperçu devrait alors être affiché par le moteur HTML/SVG partiel d'UXP, ce qui viole la contrainte WYSIWYG du projet. Voir docs/adr/0001-moteur-de-rendu.md. Conservé comme piste pour du rendu par lots sans aperçu.
+Technically viable for headless rendering, but rejected as the main engine: the preview would then have
+to be displayed by UXP's partial HTML/SVG engine, which violates the project's WYSIWYG constraint. See
+[ADR 0001](../../docs/adr/0001-rendering-engine.md). Kept as a lead for batch rendering, where no
+preview is needed.
 
-## Rejouer le spike
+## Replaying the spike
 
-```
+```sh
 npm install mathjax-full@3 esbuild
-node render.js "x^2 + y^2 = r^2"   # rendu direct, écrit out.svg
-node build.mjs                      # bundle.js (IIFE, expose globalThis.texToSvg)
+node render.js "x^2 + y^2 = r^2"   # direct render, writes out.svg
+node build.mjs                     # bundle.js (IIFE, exposes globalThis.texToSvg)
 ```

@@ -1,13 +1,12 @@
 /*
- * Acces au DOM InDesign : lecture du contexte texte au curseur et
- * insertion de la formule en objet ancre inline.
+ * InDesign DOM access: reading the text context at the cursor and
+ * inserting the formula as an inline anchored object.
  *
- * Regle de fiabilite absolue : aucune reference DOM InDesign
- * (InsertionPoint, Rectangle...) ne doit traverser une frontiere
- * asynchrone. Une reference invalidee par une action utilisateur
- * pendant un await peut faire planter InDesign au niveau natif.
- * Tout ici est synchrone ; la resolution de la selection se fait au
- * moment de l'appel, jamais avant.
+ * Absolute reliability rule: no InDesign DOM reference (InsertionPoint,
+ * Rectangle...) may cross an async boundary. A reference invalidated by
+ * a user action during an await can crash InDesign at the native level.
+ * Everything here is synchronous; the selection is resolved at call
+ * time, never earlier.
  */
 
 const {
@@ -22,8 +21,8 @@ const {
 const LABEL_KEY = "sticky-math";
 
 /*
- * Selection texte courante resolue en une passe :
- * { ip, pointSize, fontFamily }, ou null hors contexte texte.
+ * Current text selection resolved in a single pass:
+ * { ip, pointSize, fontFamily }, or null outside a text context.
  */
 function textContext() {
   try {
@@ -42,12 +41,12 @@ function textContext() {
     if (!item || !item.constructor || item.constructor.name !== "InsertionPoint") return null;
 
     const ctx = { ip: item, pointSize: null, fontFamily: null };
-    /* pointSize peut revenir NaN ou sous forme de chaine selon le
-       contexte : ne garder qu'un nombre fini et positif */
+    /* pointSize can come back as NaN or as a string depending on the
+       context: keep only a finite, positive number */
     const ps = parseFloat(item.pointSize);
     if (isFinite(ps) && ps > 0) ctx.pointSize = ps;
     const font = item.appliedFont;
-    /* selon le contexte, Font object ou chaine "Famille\tStyle" */
+    /* depending on the context, a Font object or a "Family\tStyle" string */
     if (typeof font === "string") ctx.fontFamily = font.split("\t")[0];
     else if (font && font.fontFamily) ctx.fontFamily = font.fontFamily;
     else if (font && font.name) ctx.fontFamily = font.name.split("\t")[0];
@@ -58,11 +57,11 @@ function textContext() {
 }
 
 /*
- * Sequence de placement, appelee dans la transaction. Retourne le
- * diagnostic tableau : une cellule en exces masque TOUT son contenu
- * (c'est la cause des formules "disparues" dans les tableaux), donc
- * si la rangee ne peut pas grandir on active son auto-grandissement,
- * annulable avec l'insertion puisque tout est dans le meme pas d'undo.
+ * Placement sequence, called inside the transaction. Returns the table
+ * diagnosis: a cell in overset hides ALL of its content (this is the
+ * cause of formulas "vanishing" inside tables), so if the row cannot
+ * grow we enable its auto-grow, which is undone along with the
+ * insertion since everything sits in the same undo step.
  */
 function performInsert(ip, params) {
   const doc = app.activeDocument;
@@ -72,14 +71,14 @@ function performInsert(ip, params) {
   try {
     rect.strokeColor = doc.swatches.itemByName("None");
   } catch (e) {
-    /* le contour a 0 pt suffit */
+    /* a 0 pt stroke weight is enough */
   }
   rect.place(params.svgPath);
   rect.fit(FitOptions.FRAME_TO_CONTENT);
 
   const aos = rect.anchoredObjectSettings;
   aos.anchoredPosition = AnchorPosition.INLINE_POSITION;
-  /* profondeur MathJax sous la baseline ; signe a confirmer visuellement */
+  /* MathJax depth below the baseline; sign to confirm visually */
   aos.anchorYoffset = -params.depthPt;
 
   rect.label = params.label;
@@ -100,17 +99,17 @@ function performInsert(ip, params) {
       }
     }
   } catch (e) {
-    /* diagnostic tableau non bloquant */
+    /* table diagnosis is non-blocking */
   }
   return table;
 }
 
 /*
- * Insertion complete : resolution du point d'insertion AU MOMENT de
- * l'appel, unites forcees en points, et toute la sequence DOM dans une
- * transaction doScript ENTIRE_SCRIPT : une seule recomposition logique,
- * un seul pas d'annulation. Si doScript n'accepte pas de fonction sur
- * ce build, execution directe equivalente (sans le pas d'undo unique).
+ * Full insertion: the insertion point is resolved AT call time, units
+ * are forced to points, and the whole DOM sequence runs inside a
+ * doScript ENTIRE_SCRIPT transaction: one logical recomposition, one
+ * undo step. If doScript does not accept a function on this build, an
+ * equivalent direct execution runs instead (without the single undo).
  */
 function insertFormula(params) {
   if (!app.documents.length) return { ok: false, reason: "no-document" };
@@ -129,8 +128,8 @@ function insertFormula(params) {
     try {
       app.doScript(run, ScriptLanguage.UXPSCRIPT, [], UndoModes.ENTIRE_SCRIPT, "Insérer une formule Sticky Math");
     } catch (e) {
-      if (ran) throw e; /* l'insertion elle-meme a echoue */
-      run(); /* doScript indisponible : execution directe */
+      if (ran) throw e; /* the insertion itself failed */
+      run(); /* doScript unavailable: direct execution */
     }
     return { ok: true, table };
   } finally {

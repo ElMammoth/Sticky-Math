@@ -1,26 +1,26 @@
 /*
- * Liaison panneau <-> webview : machine d'etat avec surveillance permanente.
+ * Panel <-> webview link: a state machine under permanent supervision.
  *
- * La webview peut etre dechargee ou rechargee par UXP a tout moment
- * (panneau masque ou redocke, changement d'espace de travail, purge
- * memoire, veille). La liaison n'est donc JAMAIS consideree comme
- * acquise : un battement de ping tourne en continu, rapide pendant
- * l'etablissement, espace ensuite. Sans reponse, la liaison repasse en
- * etablissement et escalade : canal de secours par fragment d'URL
- * (builds InDesign dont postMessage panneau vers webview est muet,
- * type bug 20.4), puis recreation de l'element webview en dernier
- * recours. Le canal de secours est coupe des qu'un ping repond par
- * postMessage : en regime etabli il ne doit jamais servir, car chaque
- * ecriture de src peut recharger la page (et MathJax avec).
+ * UXP can unload or reload the webview at any moment (panel hidden or
+ * redocked, workspace change, memory purge, sleep). The link is
+ * therefore NEVER considered acquired: a ping heartbeat runs
+ * continuously, fast while establishing, spaced out afterwards. With no
+ * answer, the link goes back to establishing and escalates: a fallback
+ * channel through the URL fragment (InDesign builds where panel to
+ * webview postMessage is mute, the 20.4 bug), then recreating the
+ * webview element as a last resort. The fallback channel is cut as soon
+ * as a ping answers by postMessage: once established it must never be
+ * used, because every write to src can reload the page (and MathJax
+ * with it).
  */
 
 const WEBVIEW_SRC = "plugin:/webview/renderer.html";
 
-const PING_CONNECTING_MS = 1500; // cadence d'etablissement
-const PING_READY_MS = 10000; // battement leger en regime etabli
-const LOST_AFTER_PINGS = 2; // pings muets avant de declarer la liaison perdue
-const HASH_AFTER_PINGS = 4; // pings muets avant d'activer le canal de secours
-const RECREATE_AFTER_PINGS = 12; // pings muets avant de recreer la webview
+const PING_CONNECTING_MS = 1500; // rate while establishing
+const PING_READY_MS = 10000; // light heartbeat once established
+const LOST_AFTER_PINGS = 2; // silent pings before declaring the link lost
+const HASH_AFTER_PINGS = 4; // silent pings before enabling the fallback channel
+const RECREATE_AFTER_PINGS = 12; // silent pings before recreating the webview
 
 function createWebviewLink({ getWebview, replaceWebview, onConnected, onLost, onMessage, onState }) {
   let state = "connecting";
@@ -45,8 +45,8 @@ function createWebviewLink({ getWebview, replaceWebview, onConnected, onLost, on
     unanswered = 0;
 
     if (msg.type === "ready") {
-      /* un ready repondant a un ping postMessage prouve ce canal :
-         le canal de secours n'a plus de raison d'etre */
+      /* a ready answering a postMessage ping proves that channel works:
+         the fallback channel has no reason to exist any more */
       if (msg.via === "postMessage") {
         postMessageConfirmed = true;
         hashActive = false;
@@ -76,13 +76,13 @@ function createWebviewLink({ getWebview, replaceWebview, onConnected, onLost, on
     try {
       el.postMessage(str);
     } catch (e) {
-      /* webview en cours de chargement */
+      /* webview still loading */
     }
     if (hashActive) {
       try {
         el.src = WEBVIEW_SRC + "#m=" + encodeURIComponent(str);
       } catch (e) {
-        /* setter src indisponible : postMessage reste seul */
+        /* src setter unavailable: postMessage is left on its own */
       }
     }
   }
@@ -116,7 +116,7 @@ function createWebviewLink({ getWebview, replaceWebview, onConnected, onLost, on
 
   function start() {
     attach(getWebview());
-    /* selon les hotes UXP, l'evenement message arrive sur l'element ou sur window */
+    /* depending on the UXP host, the message event lands on the element or on window */
     window.addEventListener("message", (e) => handleRaw(e.data));
     schedule(PING_CONNECTING_MS);
     onState("connecting", "etablissement");

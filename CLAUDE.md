@@ -1,62 +1,62 @@
 # Sticky Math
 
-Plugin UXP pour Adobe InDesign 2026 (v21.x, UXP v8, macOS) : écrire du LaTeX dans un panneau, prévisualiser en direct, insérer la formule dans le texte à la position du curseur, en objet ancré inline calé sur la baseline.
+UXP plugin for Adobe InDesign 2026 (v21.x, UXP v8, macOS): write LaTeX in a panel, preview it live, insert the formula into the text at the cursor position, as an inline anchored object sitting on the baseline.
 
-## Contrainte non négociable : WYSIWYG strict
+## Non-negotiable constraint: strict WYSIWYG
 
-Ce qui est affiché dans l'aperçu est exactement ce qui est inséré, au vecteur près.
+What the preview displays is exactly what gets inserted, down to the vector.
 
-Règles qui en découlent, à ne jamais casser :
+Rules that follow from it, never to be broken:
 
-1. Le LaTeX est rendu UNE SEULE FOIS, en SVG, par MathJax dans la webview (`plugin/webview/renderer.js`). L'aperçu est ce nœud DOM ; le SVG inséré est la sérialisation de ce même nœud.
-2. Aucun second moteur de rendu ne retouche l'expression. En particulier, le rendu MathML natif d'InDesign n'est PAS utilisé pour l'affichage final (voir docs/rapport-environnement.md pour ce que permet cette API, réservée à un éventuel futur mode optionnel texte éditable).
-3. La seule transformation autorisée sur le SVG avant placement : réécrire les attributs `width` et `height` (ex vers pt) dans `plugin/main.js`. Conversion d'unités uniquement, jamais de modification du viewBox ni des tracés.
-4. `fontCache: "none"` est imposé côté MathJax : glyphes mathématiques en paths inline, pas de `<defs>/<use>`, pour la compatibilité avec l'importateur SVG d'InDesign. Nuance assumée : les segments `\text{}` (et tout caractère absent des polices TeX, accents compris) sortent en éléments `<text>` SVG ; l'option « Police du texte » du panneau (`mtextFont` MathJax, modifiable à chaud) leur applique une famille choisie par l'utilisateur, qui doit exister côté InDesign. La fidélité de ces `<text>` à l'import InDesign est à vérifier visuellement.
-5. Le CSS d'ajustement de l'aperçu ne doit cibler QUE le SVG racine (`#preview mjx-container > svg`) : les caractères extensibles (accolades de `\underbrace`, grands délimiteurs) sont des assemblages de `<svg>` imbriqués à dimensions explicites, qu'un `height: auto` global disloque.
-5. La source LaTeX, le corps, l'échelle et la profondeur sont stockés à part (label JSON de l'objet placé) pour la ré-édition ; le visuel reste le SVG issu de l'aperçu.
+1. LaTeX is rendered ONCE ONLY, to SVG, by MathJax in the webview (`plugin/webview/renderer.js`). The preview is that DOM node; the inserted SVG is the serialization of that same node.
+2. No second rendering engine touches the expression. In particular, InDesign's native MathML rendering is NOT used for final output (see docs/environment.md for what that API allows; it is reserved for a possible future opt-in editable-text mode).
+3. The only transformation allowed on the SVG before placement: rewriting the `width` and `height` attributes (ex to pt) in `plugin/main.js`. Unit conversion only, never a change to the viewBox or to the paths.
+4. `fontCache: "none"` is mandatory on the MathJax side: math glyphs as inline paths, no `<defs>/<use>`, for compatibility with InDesign's SVG importer. Accepted nuance: `\text{}` segments (and any character missing from the TeX fonts, accents included) come out as SVG `<text>` elements; the panel's "text font" option (MathJax's `mtextFont`, changeable on the fly) applies a user-chosen family to them, which must exist on the InDesign side. The fidelity of those `<text>` elements through the InDesign import has to be verified visually.
+5. The preview's adjustment CSS must target ONLY the root SVG (`#preview mjx-container > svg`): stretchy characters (the braces of `\underbrace`, large delimiters) are assemblies of nested `<svg>` elements with explicit dimensions, which a global `height: auto` dislocates.
+6. The LaTeX source, point size, scale, and depth are stored separately (a JSON label on the placed object) for re-editing; the visual remains the SVG that came out of the preview.
 
 ## Architecture
 
-Décision actée dans docs/adr/0001-moteur-de-rendu.md : MathJax en sortie SVG dans un webview UXP (option B). L'option A (mathjax-full headless dans le panneau) est écartée pour l'aperçu, spike conservé dans `spikes/option-a-liteadaptor/`.
+Decision recorded in docs/adr/0001-rendering-engine.md: MathJax with SVG output in a UXP webview (option B). Option A (headless mathjax-full in the panel) is rejected for the preview; its spike is kept in `spikes/option-a-liteadaptor/`.
 
-Flux : saisie LaTeX dans le panneau, postMessage vers la webview, rendu MathJax affiché (aperçu), renvoi du SVG sérialisé plus métriques (widthEx, heightEx, depthEx, exEm) au panneau, réécriture des dimensions en pt, écriture du fichier SVG dans la destination active, placement InDesign.
+Flow: LaTeX typed in the panel, postMessage to the webview, MathJax render displayed (the preview), the serialized SVG plus metrics (widthEx, heightEx, depthEx, exEm) returned to the panel, dimensions rewritten in pt, the SVG file written to the active destination, InDesign placement.
 
-Destination des SVG : dossier temporaire du plugin par défaut, ou dossier choisi par l'utilisateur (`localFileSystem: "request"`, sélecteur `getFolder`). L'accès au dossier choisi est conservé entre les sessions par jeton persistant UXP (`createPersistentToken` / `getEntryForPersistentToken`) stocké en localStorage avec le chemin d'affichage. Le dossier est relu à chaque insertion (changement de destination a effet immédiat) et les fichiers n'y sont jamais supprimés par le plugin.
+SVG destination: the plugin's temporary folder by default, or a folder chosen by the user (`localFileSystem: "request"`, `getFolder` picker). Access to a chosen folder is kept across sessions through a UXP persistent token (`createPersistentToken` / `getEntryForPersistentToken`) stored in localStorage alongside the display path. The folder is re-read on every insertion (a destination change takes effect immediately) and the plugin never deletes files there.
 
-Placement InDesign (`plugin/lib/indesign.js`) :
+InDesign placement (`plugin/lib/indesign.js`):
 
-- règle de fiabilité absolue : aucune référence DOM InDesign ne traverse un `await` (référence invalidée = crash natif possible) ; le point d'insertion est résolu au moment de l'appel, après l'écriture du fichier, et toute la séquence est synchrone ;
-- la séquence tourne dans `app.doScript(..., UndoModes.ENTIRE_SCRIPT)` : une transaction, un seul pas d'annulation (repli en exécution directe si doScript refuse une fonction) ;
-- `insertionPoint.rectangles.add()` crée le rectangle ancré inline, puis `rect.place(cheminSvg)` et `fit(FRAME_TO_CONTENT)` ;
-- baseline : `anchoredObjectSettings.anchorYoffset = -depthPt` où depthPt vient du `vertical-align` MathJax (profondeur sous la baseline) ; signe à confirmer visuellement au premier essai dans InDesign ;
-- tableaux : une cellule en excès masque tout son contenu (cause des formules « disparues ») ; si l'insertion a lieu dans une cellule qui déborde et que la rangée ne grandit pas, `row.autoGrow` est activé dans la même transaction et annoncé dans le statut ; si l'excès persiste, avertissement ;
-- unités forcées en points via `app.scriptPreferences.measurementUnit` (restaurées en finally) ;
-- label : `rect.label` = JSON `{ app: "sticky-math", v, tex, display, corps, scalePct, depthEx, exEm, mtextFont }` et `rect.insertLabel("sticky-math:tex", tex)`.
+- absolute reliability rule: no InDesign DOM reference may cross an `await` (an invalidated reference can crash the application natively); the insertion point is resolved at call time, after the file has been written, and the whole sequence is synchronous;
+- the sequence runs inside `app.doScript(..., UndoModes.ENTIRE_SCRIPT)`: one transaction, a single undo step (falling back to direct execution if doScript refuses a function);
+- `insertionPoint.rectangles.add()` creates the inline anchored rectangle, then `rect.place(svgPath)` and `fit(FRAME_TO_CONTENT)`;
+- baseline: `anchoredObjectSettings.anchorYoffset = -depthPt` where depthPt comes from the MathJax `vertical-align` (depth below the baseline); the sign is to be confirmed visually on the first try in InDesign;
+- tables: a cell in overset hides all of its content (the cause of "vanished" formulas); if insertion happens in an overset cell and the row does not grow, `row.autoGrow` is enabled in the same transaction and announced in the status line; if the overset persists, a warning is shown;
+- units forced to points via `app.scriptPreferences.measurementUnit` (restored in a finally);
+- label: `rect.label` = JSON `{ app: "sticky-math", v, tex, display, corps, scalePct, depthEx, exEm, mtextFont }` and `rect.insertLabel("sticky-math:tex", tex)`.
 
-Liaison panneau/webview (`plugin/lib/webview-link.js`) : machine d'état avec surveillance permanente, jamais « acquise ». Ping continu (1.5 s en établissement, 10 s en régime établi), liaison déclarée perdue après 2 pings muets puis rétablie automatiquement, re-rendu du contenu courant à chaque (re)connexion. Escalade en cas de silence : canal de secours par fragment d'URL (builds dont postMessage panneau vers webview est muet), coupé dès qu'un ping répond par postMessage, puis recréation de l'élément webview en dernier recours. La webview répond aux pings en indiquant le canal d'arrivée et se re-signale à la reprise de visibilité.
+Panel/webview link (`plugin/lib/webview-link.js`): a state machine under permanent supervision, never "acquired". Continuous ping (1.5 s while establishing, 10 s once established), the link declared lost after 2 silent pings then re-established automatically, current content re-rendered on every (re)connection. Escalation on silence: a fallback channel through the URL fragment (builds where panel to webview postMessage is mute), cut as soon as a ping answers by postMessage, then recreation of the webview element as a last resort. The webview answers pings by reporting which channel they arrived on and re-announces itself when visibility resumes.
 
-Conversion d'unités : le SVG MathJax est dimensionné en ex. Le rapport ex/em est MESURÉ par la webview (`MathJax.getMetricsFor`, environ 0.459, pas 0.5). taille en pt = valeurEx * exEm * corps * (échelle / 100).
+Unit conversion: the MathJax SVG is sized in ex. The ex/em ratio is MEASURED by the webview (`MathJax.getMetricsFor`, around 0.459, not 0.5). size in pt = valueEx * exEm * pointSize * (scale / 100).
 
-## Structure du dépôt
+## Repository structure
 
-- `plugin/` : le plugin UXP chargeable tel quel dans l'UXP Developer Tool (manifest v5). `main.js` ne fait que le câblage de l'interface ; la logique vit dans `plugin/lib/` (webview-link.js : liaison surveillée ; indesign.js : DOM InDesign, tout synchrone ; prefs.js : préférences persistantes et écriture des SVG).
-- `plugin/webview/vendor/tex-svg-full.js` : MathJax 3 vendorisé (composant complet tex-svg), fonctionnement hors ligne. Ne pas remplacer par un chargement CDN.
-- `docs/adr/` : décisions d'architecture, une par fichier, numérotées.
-- `docs/rapport-environnement.md` : versions cibles, API MathML native, vérifications à faire sur le poste.
-- `spikes/` : code exploratoire conservé pour référence, jamais importé par le plugin.
+- `plugin/`: the UXP plugin, loadable as is in the UXP Developer Tool (manifest v5). `main.js` does nothing but UI wiring; the logic lives in `plugin/lib/` (webview-link.js: the supervised link; indesign.js: InDesign DOM, fully synchronous; prefs.js: persistent preferences and SVG writing).
+- `plugin/webview/vendor/tex-svg-full.js`: MathJax 3 vendored (the complete tex-svg component), for offline operation. Do not replace it with a CDN load.
+- `docs/`: architecture, installation, environment report, roadmap, and ADRs (one decision per numbered file).
+- `spikes/`: exploratory code kept for reference, never imported by the plugin.
 
 ## Conventions
 
-- Interface du panneau en composants Spectrum UXP (`sp-textarea`, `sp-textfield`, `sp-slider`, `sp-action-button`, `sp-label`, `sp-divider`) : style natif InDesign et suivi automatique du thème clair/sombre. Exception assumée : le bouton primaire « Insérer » est un `button` maison (bleu Adobe #1473e6, 26 px, coins 2 px), le `sp-button` CTA étant trop massif et trop arrondi. `styles.css` ne gère que la disposition, calquée sur les panneaux natifs (libellé à gauche, contrôle à droite), fluide (défilement vertical si le panneau est court, jamais de débordement horizontal). Attention : `sp-textfield` ne supporte pas `type="number"` (affiche « nan ») ; champs texte + parseFloat côté code.
-- Pas de case « Display » : le mode display est décidé par les délimiteurs saisis (`$$...$$`, `\[...\]`), retirés avant rendu.
-- Le panneau est silencieux en fonctionnement normal : les zones de statut et d'état de liaison (masquées quand vides via `:empty`) ne s'affichent qu'en cas d'erreur ou d'avertissement utile (LaTeX invalide, cellule de tableau en excès, dossier de destination perdu, liaison webview en panne).
+- Panel interface in Spectrum UXP components (`sp-textarea`, `sp-textfield`, `sp-slider`, `sp-action-button`, `sp-label`, `sp-divider`): native InDesign styling and automatic light/dark theme tracking. Accepted exception: the primary "Insert" button is a hand-rolled `button` (Adobe blue #1473e6, 26 px, 2 px corners), the CTA `sp-button` being too massive and too rounded. `styles.css` handles layout only, modelled on the native panels (label on the left, control on the right), fluid (vertical scrolling if the panel is short, never horizontal overflow). Careful: `sp-textfield` does not support `type="number"` (it displays "nan"); use text fields plus parseFloat in code.
+- No "Display" checkbox: display mode is decided by the delimiters typed in (`$$...$$`, `\[...\]`), which are stripped before rendering.
+- The panel is silent in normal operation: the status and link-state areas (hidden when empty via `:empty`) only appear for an error or a useful warning (invalid LaTeX, overset table cell, lost destination folder, broken webview link).
 
-- Documentation en français, sans tiret cadratin.
-- Code commenté en français, sobre : uniquement les contraintes non évidentes.
-- Le panneau parle à la webview en JSON stringifié dans les deux sens (types de messages : render, clear, ready, rendered, error).
-- Pas de dépendance réseau au runtime. Tout est embarqué dans `plugin/`.
-- Tester la page webview hors InDesign : le harnais Playwright utilisé pour la validation est décrit dans le rapport d'environnement (stub de `window.uxpHost`, événements message simulés).
+- Documentation and code comments in English.
+- Code comments kept sober: only the non-obvious constraints.
+- The panel's user-facing strings stay in French (labels, status messages, the InDesign undo step name). The interface is French; the documentation is not.
+- The panel talks to the webview in stringified JSON in both directions (message types: render, clear, ready, rendered, error).
+- No network dependency at runtime. Everything is embedded in `plugin/`.
+- Testing the webview page outside InDesign: the Playwright harness used for validation is described in the environment report (a `window.uxpHost` stub, simulated message events).
 
-## État et suite
+## State and next steps
 
-Le panneau minimal (saisie, aperçu, insertion ancrée avec baseline) est écrit et la partie rendu est validée dans Chromium. La première vérification dans InDesign réel reste à faire (voir la liste de contrôle du rapport d'environnement). Prochaines étapes dans TODO.md.
+The minimal panel (input, preview, anchored insertion with baseline) is written and the rendering part is validated in Chromium. The first verification in real InDesign is still to be done (see the checklist in docs/roadmap.md). Next steps in docs/roadmap.md.

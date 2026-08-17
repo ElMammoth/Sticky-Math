@@ -1,5 +1,25 @@
+# Dependencies (only the spikes have any; the plugin itself has none)
 node_modules/
-.DS_Store
+
+# Spike outputs
 spikes/**/out.svg
 spikes/**/bundle.js
 spikes/**/package-lock.json
+
+# Plugin packaging
+*.ccx
+dist/
+
+# SVGs written by the plugin, if the chosen destination is inside the repo
+sticky-math-*.svg
+
+# macOS
+.DS_Store
+._*
+
+# Editors
+.vscode/
+.idea/
+
+# Logs
+*.log

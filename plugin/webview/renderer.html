@@ -16,7 +16,7 @@
     #preview {
       display: flex;
       align-items: center;
-      /* "safe" : ne jamais clipper le debut du contenu quand il deborde */
+      /* "safe": never clip the start of the content when it overflows */
       justify-content: safe center;
       min-height: 110px;
       padding: 12px;
@@ -25,14 +25,15 @@
       color: #111111;
     }
     /*
-     * Une formule plus large que le panneau est reduite pour rester
-     * entierement visible. Reduction vectorielle d'affichage uniquement :
-     * le SVG serialise pour l'insertion n'est pas touche.
-     * IMPERATIF : ne cibler que le SVG racine (enfant direct du
-     * conteneur MathJax). Les caracteres extensibles (accolades de
-     * \underbrace, grands delimiteurs) sont assembles dans des <svg>
-     * imbriques a dimensions explicites ; leur appliquer height: auto
-     * disloque l'assemblage (barre d'extension a travers le texte).
+     * A formula wider than the panel is scaled down so it stays fully
+     * visible. Vector display scaling only: the SVG serialized for
+     * insertion is not touched.
+     * IMPERATIVE: target only the root SVG (the direct child of the
+     * MathJax container). Stretchy characters (the braces of
+     * \underbrace, large delimiters) are assembled from nested <svg>
+     * elements with explicit dimensions; applying height: auto to those
+     * dislocates the assembly (an extension bar running through the
+     * text).
      */
     #preview mjx-container > svg {
       max-width: 100%;

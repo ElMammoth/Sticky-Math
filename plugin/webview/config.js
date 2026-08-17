@@ -1,17 +1,17 @@
 /*
- * Configuration MathJax, chargee AVANT vendor/tex-svg-full.js.
- * Fichier externe plutot que script inline : certains contextes webview
- * bloquent les scripts inline, et cette config est indispensable.
+ * MathJax configuration, loaded BEFORE vendor/tex-svg-full.js.
+ * An external file rather than an inline script: some webview contexts
+ * block inline scripts, and this config is indispensable.
  */
 
 window.MathJax = {
   svg: { fontCache: "none" },
   /*
-   * Pas de MathML assistif : sans la feuille de style globale de
-   * MathJax (jamais injectee avec typeset: false), il serait rendu
-   * nativement par Chromium et dupliquerait visuellement la formule.
-   * Le reglage du menu contextuel doit aussi etre coupe, sinon il
-   * reactive l'extension par dessus enableAssistiveMml.
+   * No assistive MathML: without MathJax's global stylesheet (never
+   * injected when typeset: false), Chromium would render it natively and
+   * visually duplicate the formula. The context menu setting has to be
+   * switched off too, otherwise it re-enables the extension on top of
+   * enableAssistiveMml.
    */
   options: {
     enableAssistiveMml: false,
@@ -21,7 +21,7 @@ window.MathJax = {
   startup: { typeset: false }
 };
 
-/* Diagnostics visibles dans la page, independants du pont de messages. */
+/* Diagnostics visible in the page itself, independent of the message bridge. */
 var stickyBootHasError = false;
 function stickyBoot(text, isError) {
   var el = document.getElementById("boot");
@@ -31,14 +31,14 @@ function stickyBoot(text, isError) {
   stickyBootHasError = !!isError;
 }
 
-/* Echec de chargement d'une ressource (ex : vendor/tex-svg-full.js). */
+/* Failure to load a resource (e.g. vendor/tex-svg-full.js). */
 window.addEventListener(
   "error",
   function (event) {
     if (event.target && event.target.tagName === "SCRIPT") {
       stickyBoot("Échec de chargement du script : " + (event.target.src || "?"), true);
     } else if (event.message && !stickyBootHasError) {
-      /* ne pas ecraser un diagnostic precis par un "Script error." generique */
+      /* do not overwrite a precise diagnosis with a generic "Script error." */
       stickyBoot("Erreur : " + event.message, true);
     }
   },

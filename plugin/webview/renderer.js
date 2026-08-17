@@ -1,10 +1,10 @@
 /*
- * Page de rendu Sticky Math (webview UXP).
+ * Sticky Math render page (UXP webview).
  *
- * Reçoit { type: "render", tex, display } du panneau, rend avec MathJax
- * en sortie SVG, affiche le résultat (c'est l'aperçu), puis renvoie au
- * panneau la sérialisation du même nœud SVG plus ses métriques.
- * Un seul rendu, un seul artefact : la garantie WYSIWYG est ici.
+ * Receives { type: "render", tex, display } from the panel, renders with
+ * MathJax in SVG output, displays the result (that is the preview), then
+ * sends the panel the serialization of that same SVG node plus its
+ * metrics. One render, one artifact: the WYSIWYG guarantee lives here.
  */
 
 var preview = document.getElementById("preview");
@@ -13,7 +13,7 @@ var renderSeq = 0;
 var engineReady = false;
 
 function boot(text, isError) {
-  stickyBoot(text, isError); // defini dans config.js
+  stickyBoot(text, isError); // defined in config.js
 }
 
 function send(obj) {
@@ -29,9 +29,9 @@ function send(obj) {
 }
 
 /*
- * tex2svg attend du TeX nu : les delimiteurs LaTeX englobants sont
- * retires. \[ \] et $$ $$ forcent le mode display, \( \) et $ $ le mode
- * inline. Sans delimiteurs, le mode demande par le panneau s'applique.
+ * tex2svg expects bare TeX: enclosing LaTeX delimiters are stripped.
+ * \[ \] and $$ $$ force display mode, \( \) and $ $ force inline mode.
+ * With no delimiters, the mode requested by the panel applies.
  */
 function normalizeTex(raw, display) {
   var tex = raw.trim();
@@ -57,12 +57,12 @@ function render(rawTex, displayRequested, mtextFont) {
   var tex = norm.tex;
   var display = norm.display;
   /*
-   * Police des segments \text{} : les glyphes sortent alors en <text>
-   * SVG portant cette famille, mesures par le vrai moteur de la
-   * webview. Modifiable a chaud sans rechargement : verifie, les
-   * metriques restent exactes. Vide = police TeX de MathJax (les
-   * caracteres qu'elle ne couvre pas, accents notamment, sortent deja
-   * en <text> avec la police de secours serif).
+   * Font for \text{} segments: their glyphs then come out as SVG <text>
+   * carrying that family, measured by the webview's real engine.
+   * Changeable on the fly without a reload: verified, the metrics stay
+   * exact. Empty = MathJax's TeX font (the characters it does not cover,
+   * accented ones in particular, already come out as <text> with the
+   * serif fallback font).
    */
   MathJax.startup.document.outputJax.options.mtextFont = mtextFont || "";
   MathJax.startup.promise
@@ -72,15 +72,15 @@ function render(rawTex, displayRequested, mtextFont) {
       return MathJax.tex2svgPromise(tex, { display: !!display });
     })
     .then(function (node) {
-      if (seq !== renderSeq) return; // un rendu plus récent est en cours
+      if (seq !== renderSeq) return; // a more recent render is in flight
       errBox.textContent = "";
       while (preview.firstChild) preview.removeChild(preview.firstChild);
-      preview.appendChild(node); // l'aperçu EST ce nœud
+      preview.appendChild(node); // the preview IS this node
 
       var svg = node.querySelector("svg");
       if (!svg) throw new Error("MathJax n'a pas produit de SVG");
 
-      /* Rapport ex/em réellement utilisé par MathJax dans ce contexte. */
+      /* The ex/em ratio MathJax actually uses in this context. */
       var metrics = MathJax.getMetricsFor(preview, !!display);
       var exEm = metrics.ex / metrics.em;
 
@@ -90,7 +90,7 @@ function render(rawTex, displayRequested, mtextFont) {
       var va = /vertical-align:\s*(-?[\d.]+)ex/.exec(styleAttr);
       var depthEx = va ? -parseFloat(va[1]) : 0;
 
-      /* Le SVG d'erreur MathJax (data-mjx-error) signale un LaTeX invalide. */
+      /* MathJax's error SVG (data-mjx-error) signals invalid LaTeX. */
       var errNode = svg.querySelector("[data-mjx-error]");
       if (errNode) {
         var message = errNode.getAttribute("data-mjx-error") || "expression invalide";
@@ -115,7 +115,7 @@ function render(rawTex, displayRequested, mtextFont) {
     .catch(function (e) {
       if (seq !== renderSeq) return;
       var message = e && e.message ? e.message : String(e);
-      /* pas d'apercu perime a cote d'un message d'erreur */
+      /* no stale preview left sitting next to an error message */
       while (preview.firstChild) preview.removeChild(preview.firstChild);
       errBox.textContent = message;
       send({ type: "error", message: message });
@@ -129,9 +129,9 @@ function clearPreview() {
 }
 
 /*
- * Les messages du panneau arrivent par postMessage et, en secours, par
- * le fragment d'URL (hashchange). Les deux canaux peuvent livrer le
- * meme message : deduplication par numero de sequence.
+ * Panel messages arrive by postMessage and, as a fallback, through the
+ * URL fragment (hashchange). Both channels can deliver the same
+ * message: deduplication by sequence number.
  */
 var seenSeqs = [];
 var pingCount = 0;
@@ -147,9 +147,9 @@ function alreadySeen(seq) {
 function handleMessage(msg, via) {
   if (!msg || !msg.type) return;
   if (alreadySeen(msg.seq)) return;
-  /* le ping du panneau prouve que le sens panneau vers webview marche ;
-     la reponse indique le canal d'arrivee pour que le panneau sache si
-     postMessage fonctionne (et coupe le canal de secours le cas echeant) */
+  /* the panel's ping proves the panel to webview direction works; the
+     answer reports which channel it arrived on so the panel knows
+     whether postMessage works (and cuts the fallback channel if so) */
   if (msg.type === "ping") {
     pingCount++;
     boot(
@@ -188,7 +188,7 @@ function readHashMessage() {
     try {
       parseAndHandle(decodeURIComponent(h.slice(3)), "hash");
     } catch (e) {
-      /* fragment illisible : ignore */
+      /* unreadable fragment: ignored */
     }
   }
 }
@@ -196,9 +196,9 @@ window.addEventListener("hashchange", readHashMessage);
 
 window.addEventListener("load", function () {
   /*
-   * Attention : window.MathJax existe toujours (objet de config pose par
-   * config.js). Seul startup.promise prouve que le vrai MathJax a charge
-   * et remplace la config.
+   * Careful: window.MathJax always exists (the config object placed by
+   * config.js). Only startup.promise proves that the real MathJax has
+   * loaded and replaced that config.
    */
   if (typeof MathJax === "undefined" || !MathJax.startup || !MathJax.startup.promise) {
     boot("MathJax n'est pas chargé (vendor/tex-svg-full.js manquant ou bloqué).", true);
@@ -208,12 +208,12 @@ window.addEventListener("load", function () {
     engineReady = true;
     boot("Moteur prêt, en attente de saisie.");
     send({ type: "ready", via: "load" });
-    /* message deja transmis par le hash pendant le chargement */
+    /* a message already delivered through the hash while loading */
     readHashMessage();
   });
 });
 
-/* apres un masquage ou une suspension, re-signaler la presence au panneau */
+/* after being hidden or suspended, re-announce presence to the panel */
 document.addEventListener("visibilitychange", function () {
   if (!document.hidden && engineReady) send({ type: "ready", via: "load" });
 });
