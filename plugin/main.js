@@ -1,16 +1,16 @@
 /*
- * Sticky Math : panneau UXP pour InDesign 2026.
+ * Sticky Math: UXP panel for InDesign 2026.
  *
- * Contrainte WYSIWYG : le SVG affiché dans la webview d'aperçu est
- * exactement celui qui est écrit sur disque puis placé dans InDesign.
- * Seule transformation autorisée : la réécriture des attributs
- * width/height (ex vers pt), conversion d'unités, pas de re-rendu.
- * Voir docs/adr/0001-moteur-de-rendu.md.
+ * WYSIWYG constraint: the SVG displayed in the preview webview is exactly
+ * the one written to disk and then placed into InDesign. The only allowed
+ * transformation is rewriting the width/height attributes (ex to pt), a
+ * unit conversion, never a re-render.
+ * See docs/adr/0001-rendering-engine.md.
  *
- * Ce fichier ne fait que le câblage de l'interface :
- * - liaison webview surveillée : lib/webview-link.js ;
- * - accès au DOM InDesign (synchrone) : lib/indesign.js ;
- * - préférences persistantes et écriture des SVG : lib/prefs.js.
+ * This file is nothing but UI wiring:
+ * - supervised webview link: lib/webview-link.js;
+ * - InDesign DOM access (synchronous): lib/indesign.js;
+ * - persistent preferences and SVG writing: lib/prefs.js.
  */
 
 const { entrypoints } = require("uxp");
@@ -20,9 +20,9 @@ const indesign = require("./lib/indesign.js");
 
 entrypoints.setup({ panels: { stickyMathPanel: { show() {} } } });
 
-let ui = null; // references DOM, remplies une fois a DOMContentLoaded
+let ui = null; // DOM references, filled in once at DOMContentLoaded
 let link = null;
-let lastRender = null; // dernier message "rendered" de la webview
+let lastRender = null; // last "rendered" message from the webview
 let debounceTimer = null;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -43,12 +43,12 @@ document.addEventListener("DOMContentLoaded", () => {
     getWebview: () => document.getElementById("renderer"),
     replaceWebview,
     onConnected() {
-      /* a chaque (re)connexion, re-rendre l'etat courant : couvre le
-         demarrage ET les rechargements silencieux de la webview */
+      /* on every (re)connection, re-render the current state: covers
+         startup AND silent reloads of the webview */
       if (ui.tex.value.trim()) requestRender();
     },
     onLost() {
-      /* lastRender reste valide : l'insertion ne depend pas de la liaison */
+      /* lastRender stays valid: insertion does not depend on the link */
     },
     onMessage: onWebviewMessage,
     onState: onLinkState,
@@ -64,8 +64,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("fromCursor").addEventListener("click", () => {
     const ctx = indesign.textContext();
     if (ctx && ctx.pointSize) {
-      /* toujours une chaine numerique propre : sp-textfield affiche
-         "nan" si on lui pousse autre chose */
+      /* always a clean numeric string: sp-textfield displays "nan" if
+         anything else is pushed into it */
       ui.fontSize.value = String(Math.round(ctx.pointSize * 100) / 100);
       setStatus("");
     } else {
@@ -115,7 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-/* ---------- liaison webview ---------- */
+/* ---------- webview link ---------- */
 
 function replaceWebview() {
   const old = document.getElementById("renderer");
@@ -126,8 +126,8 @@ function replaceWebview() {
   return fresh;
 }
 
-/* La ligne d'etat de liaison n'apparait qu'en cas de probleme :
-   en fonctionnement normal, le panneau reste muet. */
+/* The link status line only appears when something is wrong: in normal
+   operation the panel stays silent. */
 function onLinkState(state, detail) {
   if (state === "ready" || detail === "etablissement") {
     setBridge("");
@@ -157,7 +157,7 @@ function onWebviewMessage(msg) {
   }
 }
 
-/* ---------- rendu ---------- */
+/* ---------- rendering ---------- */
 
 function requestRender() {
   const tex = ui.tex.value.trim();
@@ -167,9 +167,9 @@ function requestRender() {
     if (link.isReady()) link.send({ type: "clear" });
     return;
   }
-  /* liaison coupee : le rendu sera relance par onConnected */
+  /* link down: the render will be relaunched by onConnected */
   if (!link.isReady()) return;
-  /* le mode display est decide par les delimiteurs saisis ($$, \[ \]) */
+  /* display mode is decided by the delimiters typed in ($$, \[ \]) */
   link.send({
     type: "render",
     tex,
@@ -193,9 +193,9 @@ async function insertFormula() {
   const scalePct = parseFloat(ui.scale.value) || 100;
 
   /*
-   * Conversion des unités MathJax vers des points InDesign. Le SVG est
-   * dimensionné en ex ; exEm est le rapport ex/em mesuré par la
-   * webview. 1 em = corps * échelle, en pt.
+   * Converting MathJax units into InDesign points. The SVG is sized in
+   * ex; exEm is the ex/em ratio measured by the webview.
+   * 1 em = point size * scale, in pt.
    */
   const emPt = corps * (scalePct / 100);
   const exPt = lastRender.exEm * emPt;
@@ -203,7 +203,7 @@ async function insertFormula() {
   const heightPt = lastRender.heightEx * exPt;
   const depthPt = lastRender.depthEx * exPt;
 
-  /* Seule retouche du SVG : dimensions physiques en pt. */
+  /* The only edit made to the SVG: physical dimensions in pt. */
   const svgText = lastRender.svg
     .replace(/width="[^"]*"/, 'width="' + widthPt.toFixed(4) + 'pt"')
     .replace(/height="[^"]*"/, 'height="' + heightPt.toFixed(4) + 'pt"');
@@ -234,8 +234,8 @@ async function insertFormula() {
   });
 
   /*
-   * Le point d'insertion est resolu DANS insertFormula, apres les
-   * await : aucune reference DOM InDesign ne traverse d'asynchrone.
+   * The insertion point is resolved INSIDE insertFormula, after the
+   * awaits: no InDesign DOM reference ever crosses an async boundary.
    */
   const res = indesign.insertFormula({
     svgPath: file.nativePath,
@@ -255,7 +255,7 @@ async function insertFormula() {
     return;
   }
 
-  /* succes silencieux : seuls les avertissements utiles s'affichent */
+  /* silent on success: only useful warnings are displayed */
   let text = "";
   let warn = false;
   if (res.table && res.table.autoGrowEnabled) {
@@ -268,7 +268,7 @@ async function insertFormula() {
   setStatus(text, warn);
 }
 
-/* ---------- affichage ---------- */
+/* ---------- display ---------- */
 
 function updateDestLabel() {
   const path = prefs.destPath();

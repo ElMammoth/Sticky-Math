@@ -1,12 +1,12 @@
 /*
- * Sticky Math : mise en page du panneau.
- * Les controles sont des composants Spectrum UXP (sp-*), au style natif
- * InDesign et suivant son theme. Ce fichier ne gere que la disposition,
- * calquee sur les panneaux natifs : libelle a gauche, controle a
- * droite, rangees alignees, defilement vertical si le panneau est
- * court, jamais de debordement horizontal. Seule exception au natif :
- * le bouton d'action primaire, volontairement bleu Adobe, compact et
- * a coins quasi droits (2 px), la ou le sp-button CTA est trop massif.
+ * Sticky Math: panel layout.
+ * The controls are Spectrum UXP components (sp-*), natively styled for
+ * InDesign and following its theme. This file handles layout only,
+ * modelled on the native panels: label on the left, control on the
+ * right, aligned rows, vertical scrolling if the panel is short, never
+ * any horizontal overflow. The single departure from native: the
+ * primary action button, deliberately Adobe blue, compact and with
+ * almost square corners (2 px), where the sp-button CTA is too massive.
  */
 
 html,
@@ -20,7 +20,7 @@ body {
   font-size: 12px;
 }
 
-/* ---------- groupes ---------- */
+/* ---------- groups ---------- */
 
 .group {
   display: flex;
@@ -29,15 +29,15 @@ body {
   padding: 10px 14px 12px;
 }
 
-/* meme registre que les titres de section des panneaux InDesign
-   ("Transformation", "Aspect") : gras, taille 11, casse normale */
+/* same register as InDesign's panel section titles ("Transform",
+   "Appearance"): bold, size 11, normal case */
 .group-title {
   margin: 0 0 2px;
   font-size: 11px;
   font-weight: 600;
 }
 
-/* ---------- rangees libelle + controle ---------- */
+/* ---------- label + control rows ---------- */
 
 .row {
   display: flex;
@@ -60,7 +60,7 @@ body {
   min-width: 0;
 }
 
-/* ---------- controles ---------- */
+/* ---------- controls ---------- */
 
 sp-textarea,
 sp-slider {
@@ -90,7 +90,7 @@ sp-textarea {
   box-sizing: border-box;
 }
 
-/* ---------- action primaire ---------- */
+/* ---------- primary action ---------- */
 
 .primary {
   width: 100%;
@@ -115,7 +115,7 @@ sp-textarea {
   cursor: default;
 }
 
-/* ---------- messages (visibles uniquement en cas de probleme) ---------- */
+/* ---------- messages (visible only when something is wrong) ---------- */
 
 .bridge,
 .status {

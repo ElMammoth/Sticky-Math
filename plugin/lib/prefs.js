@@ -1,8 +1,8 @@
 /*
- * Preferences persistantes du panneau : police des segments \text{} et
- * dossier de destination des SVG. Le dossier choisi est retrouve entre
- * les sessions via un jeton persistant UXP ; les fichiers ecrits ne
- * sont jamais supprimes par le plugin.
+ * Persistent panel preferences: the font for \text{} segments and the
+ * destination folder for SVG files. A chosen folder is recovered across
+ * sessions through a UXP persistent token; files written are never
+ * deleted by the plugin.
  */
 
 const fs = require("uxp").storage.localFileSystem;
@@ -11,7 +11,7 @@ const MTEXT_FONT_KEY = "sticky-math.mtextFont";
 const DEST_TOKEN_KEY = "sticky-math.destToken";
 const DEST_PATH_KEY = "sticky-math.destPath";
 
-let destFolder = null; // Entry dossier, ou null = dossier temporaire
+let destFolder = null; // folder Entry, or null = temporary folder
 
 function getMtextFont() {
   return localStorage.getItem(MTEXT_FONT_KEY) || "";
@@ -21,12 +21,12 @@ function setMtextFont(value) {
   localStorage.setItem(MTEXT_FONT_KEY, value);
 }
 
-/* Chemin de destination affichable, ou null si dossier temporaire. */
+/* Displayable destination path, or null if the temporary folder. */
 function destPath() {
   return destFolder ? destFolder.nativePath : null;
 }
 
-/* Retrouve le dossier choisi lors d'une session precedente. */
+/* Recovers the folder chosen during a previous session. */
 async function restoreDestFolder() {
   const token = localStorage.getItem(DEST_TOKEN_KEY);
   if (!token) return { restored: false };
@@ -36,7 +36,7 @@ async function restoreDestFolder() {
       destFolder = entry;
       return { restored: true, path: entry.nativePath };
     }
-    throw new Error("entrée invalide");
+    throw new Error("invalid entry"); // caught just below, never surfaced
   } catch (e) {
     const lostPath = localStorage.getItem(DEST_PATH_KEY) || "";
     localStorage.removeItem(DEST_TOKEN_KEY);
@@ -45,7 +45,7 @@ async function restoreDestFolder() {
   }
 }
 
-/* Ouvre le selecteur ; retourne le chemin choisi ou null si annule. */
+/* Opens the picker; returns the chosen path, or null if cancelled. */
 async function chooseDestFolder() {
   const folder = await fs.getFolder();
   if (!folder) return null;
@@ -62,7 +62,7 @@ function resetDestFolder() {
   localStorage.removeItem(DEST_PATH_KEY);
 }
 
-/* Nom de fichier horodate, lisible et sans collision. */
+/* Timestamped filename, readable and collision-free. */
 function svgFileName() {
   const d = new Date();
   const pad = (n, l) => String(n).padStart(l || 2, "0");
@@ -75,9 +75,9 @@ function svgFileName() {
 }
 
 /*
- * Ecrit le SVG dans la destination ACTIVE (relue a chaque appel : un
- * changement de destination s'applique immediatement). Retourne l'Entry
- * du fichier cree.
+ * Writes the SVG into the ACTIVE destination (re-read on every call, so
+ * a destination change takes effect immediately). Returns the Entry of
+ * the created file.
  */
 async function writeSvg(svgText) {
   const folder = destFolder || (await fs.getTemporaryFolder());
